@@ -8,7 +8,17 @@ const ProductGallery = ({ media, productName }) => {
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
-  const currentMedia = media[currentMediaIndex];
+  // S'assurer que l'index est valide quand les médias changent
+  useEffect(() => {
+    if (media && media.length > 0 && currentMediaIndex >= media.length) {
+      setCurrentMediaIndex(0);
+    }
+  }, [media, currentMediaIndex]);
+
+  const currentMedia = media && media.length > 0 ? media[currentMediaIndex] : null;
+
+  // Filtrer les médias valides (double sécurité)
+  const validMedia = media ? media.filter(m => m.url && typeof m.url === 'string') : [];
 
   // Gestion du swipe mobile
   const handleTouchStart = (e) => {
@@ -66,7 +76,7 @@ const ProductGallery = ({ media, productName }) => {
   };
 
   const nextMedia = () => {
-    if (currentMediaIndex < media.length - 1) {
+    if (currentMediaIndex < validMedia.length - 1) {
       setCurrentMediaIndex(currentMediaIndex + 1);
       setIsZoomed(false);
     }
@@ -79,7 +89,7 @@ const ProductGallery = ({ media, productName }) => {
     }
   };
 
-  if (!media || media.length === 0) {
+  if (!validMedia || validMedia.length === 0) {
     return (
       <div className="product-gallery-empty">
         <p>Aucun média disponible</p>
@@ -104,25 +114,41 @@ const ProductGallery = ({ media, productName }) => {
               src={currentMedia.url}
               alt={`${productName} - ${currentMediaIndex + 1}`}
               className="main-image"
-              loading="eager"
+              loading="lazy"
+              style={{ objectFit: 'cover' }}
+              onError={(e) => {
+                console.warn('Erreur de chargement image:', currentMedia.url);
+                e.target.style.display = 'none';
+              }}
             />
-          ) : (
+          ) : currentMedia.type === 'video' ? (
             <video
               ref={mainMediaRef}
               src={currentMedia.url}
               alt={`${productName} - ${currentMediaIndex + 1}`}
               className="main-video"
               autoPlay
-              loop
               muted
+              loop
               playsInline
-              controls={false}
-            />
+              controls={true}
+              style={{ objectFit: 'contain' }}
+              onError={(e) => {
+                console.warn('Erreur de chargement vidéo:', currentMedia.url);
+                e.target.style.display = 'none';
+              }}
+            >
+              Votre navigateur ne supporte pas cette vidéo.
+            </video>
+          ) : (
+            <div className="media-error">
+              <p>Type de média non supporté</p>
+            </div>
           )}
         </div>
 
         {/* Navigation desktop */}
-        {media.length > 1 && (
+        {validMedia.length > 1 && (
           <>
             <button 
               className="nav-btn prev-btn"
@@ -135,7 +161,7 @@ const ProductGallery = ({ media, productName }) => {
             <button 
               className="nav-btn next-btn"
               onClick={nextMedia}
-              disabled={currentMediaIndex === media.length - 1}
+              disabled={currentMediaIndex === validMedia.length - 1}
               aria-label="Média suivant"
             >
               ›
@@ -153,18 +179,18 @@ const ProductGallery = ({ media, productName }) => {
         </div>
 
         {/* Indicateur de progression */}
-        {media.length > 1 && (
+        {validMedia.length > 1 && (
           <div className="progress-indicator">
-            {currentMediaIndex + 1} / {media.length}
+            {currentMediaIndex + 1} / {validMedia.length}
           </div>
         )}
       </div>
 
-      {/* Thumbnails */}
-      {media.length > 1 && (
+      {/* Thumbnails - Afficher TOUS les médias sans condition */}
+      {validMedia && validMedia.length > 0 && (
         <div className="thumbnails-container">
           <div className="thumbnails">
-            {media.map((item, index) => (
+            {validMedia.map((item, index) => (
               <button
                 key={index}
                 className={`thumbnail ${index === currentMediaIndex ? 'active' : ''}`}
@@ -177,8 +203,13 @@ const ProductGallery = ({ media, productName }) => {
                     alt={`${productName} - ${index + 1}`}
                     className="thumbnail-image"
                     loading="lazy"
+                    style={{ objectFit: 'cover' }}
+                    onError={(e) => {
+                      console.warn('Erreur thumbnail image:', item.url);
+                      e.target.style.display = 'none';
+                    }}
                   />
-                ) : (
+                ) : item.type === 'video' ? (
                   <div className="thumbnail-video">
                     <video
                       src={item.url}
@@ -186,10 +217,19 @@ const ProductGallery = ({ media, productName }) => {
                       muted
                       loop
                       playsInline
+                      style={{ objectFit: 'cover' }}
+                      onError={(e) => {
+                        console.warn('Erreur thumbnail vidéo:', item.url);
+                        e.target.style.display = 'none';
+                      }}
                     />
                     <div className="thumbnail-video-overlay">
                       <span>▶</span>
                     </div>
+                  </div>
+                ) : (
+                  <div className="thumbnail-error">
+                    <span>?</span>
                   </div>
                 )}
               </button>

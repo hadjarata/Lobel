@@ -20,10 +20,15 @@ const Product = () => {
   const [error, setError] = useState(null);
   
   // États pour les variantes
-  const [selectedColor, setSelectedColor] = useState('');
-  const [selectedSize, setSelectedSize] = useState('');
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedSize, setSelectedSize] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  
+  // États dérivés pour les options disponibles
+  const [availableColors, setAvailableColors] = useState([]);
+  const [availableSizes, setAvailableSizes] = useState([]);
+  const [currentStock, setCurrentStock] = useState(0);
 
   useEffect(() => {
     if (id) {
@@ -49,39 +54,39 @@ const Product = () => {
           description: 'Une magnifique robe fleurie conçue avec des matériaux de haute qualité. Parfaite pour les occasions spéciales ou pour une élégance quotidienne. Coupe ajustée qui met en valeur votre silhouette tout en offrant un confort optimal.',
           category: 'Robes',
           stock: 15,
-          sizes: ['XS', 'S', 'M', 'L', 'XL'],
-          colors: [
-            { name: 'Rose', value: '#FFB6C1' },
-            { name: 'Beige', value: '#F5F5DC' },
-            { name: 'Bleu', value: '#4A90E2' }
+          // Nouveau format de variantes avec hex_code
+          variants: [
+            { color: { id: 1, name: 'Rose Poudré', hex_code: '#FFB6C1' }, size: { id: 1, name: 'XS' }, stock: 3 },
+            { color: { id: 1, name: 'Rose Poudré', hex_code: '#FFB6C1' }, size: { id: 2, name: 'S' }, stock: 5 },
+            { color: { id: 1, name: 'Rose Poudré', hex_code: '#FFB6C1' }, size: { id: 3, name: 'M' }, stock: 4 },
+            { color: { id: 1, name: 'Rose Poudré', hex_code: '#FFB6C1' }, size: { id: 4, name: 'L' }, stock: 2 },
+            { color: { id: 1, name: 'Rose Poudré', hex_code: '#FFB6C1' }, size: { id: 5, name: 'XL' }, stock: 1 },
+            { color: { id: 2, name: 'Beige Doux', hex_code: '#F5F5DC' }, size: { id: 1, name: 'XS' }, stock: 2 },
+            { color: { id: 2, name: 'Beige Doux', hex_code: '#F5F5DC' }, size: { id: 2, name: 'S' }, stock: 6 },
+            { color: { id: 2, name: 'Beige Doux', hex_code: '#F5F5DC' }, size: { id: 3, name: 'M' }, stock: 4 },
+            { color: { id: 2, name: 'Beige Doux', hex_code: '#F5F5DC' }, size: { id: 4, name: 'L' }, stock: 3 },
+            { color: { id: 2, name: 'Beige Doux', hex_code: '#F5F5DC' }, size: { id: 5, name: 'XL' }, stock: 0 },
+            { color: { id: 3, name: 'Bleu Ciel', hex_code: '#87CEEB' }, size: { id: 1, name: 'XS' }, stock: 1 },
+            { color: { id: 3, name: 'Bleu Ciel', hex_code: '#87CEEB' }, size: { id: 2, name: 'S' }, stock: 3 },
+            { color: { id: 3, name: 'Bleu Ciel', hex_code: '#87CEEB' }, size: { id: 3, name: 'M' }, stock: 2 },
+            { color: { id: 3, name: 'Bleu Ciel', hex_code: '#87CEEB' }, size: { id: 4, name: 'L' }, stock: 0 },
+            { color: { id: 3, name: 'Bleu Ciel', hex_code: '#87CEEB' }, size: { id: 5, name: 'XL' }, stock: 1 }
           ],
-          // Format média moderne avec images + vidéos
+          // Format média moderne avec images + vidéos - TEST COMPLET
           media: [
-            { type: 'image', url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="%23FFB6C1"/><text x="200" y="250" font-family="Georgia" font-size="20" fill="white" text-anchor="middle">Robe Fleurie</text></svg>' },
-            { type: 'image', url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="%23F5F5DC"/><text x="200" y="250" font-family="Georgia" font-size="20" fill="%23333" text-anchor="middle">Vue Dos</text></svg>' },
-            { type: 'video', url: 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAAD2WIhAA3//728P4FNjuZQQAAAu5tb292AAAAbG12aGQAAAAAAAAAAAAAAAAAAAPoAAAAZAABAAABAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAACGHRyYWsAAABcdGtoZAAAAAMAAAAAAAAAAAAAAAEAAAAAAAAAZAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAEAAAAAAAgAAAAIAAAAAACRlZHRzAAAAHGVsc3QAAAAAAAAAAQAAAGQAAAAAAAEAAAAAAZBtZGlhAAAAIG1kaGQAAAAAAAAAAAAAAAAAACgAAAAEAFXEAAAAAAAtaGRscgAAAAAAAAAAdmlkZQAAAAAAAAAAAAAAAFZpZGVvSGFuZGxlcgAAAAE7bWluZgAAABR2bWhkAAAAAQAAAAAAAAAAAAAAJGRpbmYAAAAcZHJlZgAAAAAAAAABAAAADHVybCAAAAABAAAA+3N0YmwAAACXc3RzZAAAAAAAAAABAAAAh2F2YzEAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAgACAEgAAABIAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAY//8AAAAxYXZjQwFNQAr/4QAYZ01ACuiPyLZYAQAEaO+G8gAAABhzdHRzAAAAAAAAAAEAAAABAAAABAAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAUc3RzegAAAAAAAAAAAAAAAQAAABRzdGNvAAAAAAAAAAEAAAAsAAAAYnVkdGEAAABabWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAraWxzdAAAACOpdG9vAAAAG2RhdGEAAAABAAAAAExhdmY1Ni4xNS4xMDI=' },
-            { type: 'image', url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="%23DAA520"/><text x="200" y="250" font-family="Georgia" font-size="20" fill="white" text-anchor="middle">Détail</text></svg>' }
+            { type: 'image', url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="%23FFB6C1"/><text x="200" y="250" font-family="Georgia" font-size="20" fill="white" text-anchor="middle">Image 1 - Rose</text></svg>' },
+            { type: 'image', url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="%23F5F5DC"/><text x="200" y="250" font-family="Georgia" font-size="20" fill="%23333" text-anchor="middle">Image 2 - Beige</text></svg>' },
+            { type: 'video', url: 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN' },
+            { type: 'image', url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="%23DAA520"/><text x="200" y="250" font-family="Georgia" font-size="20" fill="white" text-anchor="middle">Image 3 - Or</text></svg>' },
+            { type: 'video', url: 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEwIHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN' },
+            { type: 'image', url: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 500"><rect width="400" height="500" fill="%2387CEEB"/><text x="200" y="250" font-family="Georgia" font-size="20" fill="white" text-anchor="middle">Image 4 - Bleu</text></svg>' }
           ]
         };
         setProduct(mockProduct);
-        
-        // Sélectionner la première couleur et taille par défaut
-        if (mockProduct.colors && mockProduct.colors.length > 0) {
-          setSelectedColor(mockProduct.colors[0].name);
-        }
-        if (mockProduct.sizes && mockProduct.sizes.length > 0) {
-          setSelectedSize(mockProduct.sizes[0]);
-        }
+        processVariants(mockProduct);
       } else {
         setProduct(productData);
-        
-        // Gérer les données réelles de l'API
-        if (productData.colors && productData.colors.length > 0) {
-          setSelectedColor(productData.colors[0].name || productData.colors[0]);
-        }
-        if (productData.sizes && productData.sizes.length > 0) {
-          setSelectedSize(productData.sizes[0]);
-        }
+        processVariants(productData);
       }
     } catch (err) {
       console.error('Error fetching product:', err);
@@ -89,6 +94,69 @@ const Product = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction pour traiter les variantes et extraire les options disponibles
+  const processVariants = (productData) => {
+    if (productData.variants && productData.variants.length > 0) {
+      // Extraire les couleurs uniques
+      const colors = [...new Map(productData.variants.map(v => [v.color.id, v.color])).values()];
+      setAvailableColors(colors);
+      
+      // Extraire les tailles uniques
+      const sizes = [...new Map(productData.variants.map(v => [v.size.id, v.size])).values()];
+      setAvailableSizes(sizes);
+      
+      // Sélectionner la première couleur et taille disponibles avec du stock
+      const firstAvailableVariant = productData.variants.find(v => v.stock > 0);
+      if (firstAvailableVariant) {
+        setSelectedColor(firstAvailableVariant.color);
+        setSelectedSize(firstAvailableVariant.size);
+        setCurrentStock(firstAvailableVariant.stock);
+      }
+    } else {
+      // Fallback pour l'ancien format (compatibilité)
+      if (productData.colors && productData.colors.length > 0) {
+        const colors = productData.colors.map((c, index) => ({
+          id: index + 1,
+          name: typeof c === 'string' ? c : c.name
+        }));
+        setAvailableColors(colors);
+        setSelectedColor(colors[0]);
+      }
+      
+      if (productData.sizes && productData.sizes.length > 0) {
+        const sizes = productData.sizes.map((s, index) => ({
+          id: index + 1,
+          name: typeof s === 'string' ? s : s.name
+        }));
+        setAvailableSizes(sizes);
+        setSelectedSize(sizes[0]);
+      }
+      
+      setCurrentStock(productData.stock || 0);
+    }
+  };
+
+  // Mettre à jour le stock quand la sélection change
+  useEffect(() => {
+    if (product && product.variants && selectedColor && selectedSize) {
+      const variant = product.variants.find(v => 
+        v.color.id === selectedColor.id && v.size.id === selectedSize.id
+      );
+      setCurrentStock(variant ? variant.stock : 0);
+    }
+  }, [selectedColor, selectedSize, product]);
+
+  // Fonctions utilitaires pour vérifier la disponibilité
+  const isColorAvailable = (color) => {
+    if (!product.variants) return true;
+    return product.variants.some(v => v.color.id === color.id && v.stock > 0);
+  };
+
+  const isSizeAvailable = (size) => {
+    if (!product.variants) return true;
+    return product.variants.some(v => v.size.id === size.id && v.stock > 0);
   };
 
   const fetchSimilarProducts = async () => {
@@ -148,18 +216,27 @@ const Product = () => {
       return;
     }
 
+    // Vérifier le stock disponible
+    if (currentStock < quantity) {
+      alert(`Stock insuffisant. Seulement ${currentStock} article(s) disponible(s).`);
+      return;
+    }
+
     setIsAddingToCart(true);
     
     try {
-      // Préparer les données pour le panier
+      // Préparer les données pour le panier avec le nouveau format
       const cartItem = {
-        productId: product.id,
+        product_id: product.id,
+        color_id: selectedColor.id,
+        size_id: selectedSize.id,
+        quantity: quantity,
+        // Informations additionnelles pour l'affichage
         name: product.name,
         price: product.price,
         image: product.media?.find(m => m.type === 'image')?.url || product.image,
-        color: selectedColor,
-        size: selectedSize,
-        quantity: quantity
+        color_name: selectedColor.name,
+        size_name: selectedSize.name
       };
 
       // TODO: Appeler l'API du panier quand elle sera prête
@@ -219,15 +296,34 @@ const Product = () => {
   }
 
   // Préparer les médias pour la galerie depuis le backend
-  const media = product.media && product.media.length > 0 
-    ? product.media.map(m => ({
-        type: m.media_type,
-        url: m.file_url  // Utiliser l'URL complète fournie par l'API
-      }))
-    : [
-        { type: 'image', url: product.image },
-        ...(product.video ? [{ type: 'video', url: product.video }] : [])
-      ];  
+  const media = (() => {
+    try {
+      // Support de media_files (backend Django) en premier
+      if (product?.media_files?.length > 0) {
+        return product.media_files
+          .filter(m => m.file && typeof m.file === 'string')
+          .map(m => ({
+            type: m.media_type || 'image',
+            url: m.file.startsWith('http') ? m.file : `/media${m.file}`
+          }));
+      }
+      
+      // Fallback pour media (ancien format ou mock)
+      if (product?.media?.length > 0) {
+        return product.media
+          .filter(m => m.url && typeof m.url === 'string')
+          .map(m => ({
+            type: m.media_type || m.type || 'image',
+            url: m.file_url || m.url
+          }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.warn('Erreur lors du traitement des médias:', error);
+      return [];
+    }
+  })();  
 
   return (
     <div className="product-page">
@@ -262,82 +358,134 @@ const Product = () => {
             {/* Variantes */}
             <div className="product-variants">
               {/* Sélecteur de couleur */}
-              {product.colors && product.colors.length > 0 && (
-                <ColorSelector
-                  colors={product.colors}
-                  selectedColor={selectedColor}
-                  onColorChange={setSelectedColor}
-                />
+              {availableColors.length > 0 && (
+                <div className="variant-selector">
+                  <label className="variant-label">Couleur</label>
+                  <div className="color-options">
+                    {availableColors.map((color) => (
+                      <div key={color.id} className="color-swatch-wrapper">
+                        <button
+                          className={`color-swatch ${selectedColor?.id === color.id ? 'active' : ''}`}
+                          onClick={() => setSelectedColor(color)}
+                          disabled={!isColorAvailable(color)}
+                          style={{ backgroundColor: color.hex_code || '#ccc' }}
+                          title={color.name}
+                        >
+                          {selectedColor?.id === color.id && (
+                            <span className="color-check">?</span>
+                          )}
+                        </button>
+                        <div className="color-tooltip">
+                          {color.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
 
               {/* Sélecteur de taille */}
-              {product.sizes && product.sizes.length > 0 && (
-                <SizeSelector
-                  sizes={product.sizes}
-                  selectedSize={selectedSize}
-                  onSizeChange={setSelectedSize}
-                />
+              {availableSizes.length > 0 && (
+                <div className="variant-selector">
+                  <label className="variant-label">Taille</label>
+                  <div className="size-options">
+                    {availableSizes.map((size) => (
+                      <button
+                        key={size.id}
+                        className={`size-option ${selectedSize?.id === size.id ? 'active' : ''}`}
+                        onClick={() => setSelectedSize(size)}
+                        disabled={!isSizeAvailable(size)}
+                      >
+                        {size.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
             {/* Stock */}
             <div className="product-stock">
-              {product.stock > 0 ? (
+              {currentStock > 0 ? (
                 <span className="stock-available">
-                  ✓ En stock ({product.stock} disponibles)
+                  En stock ({currentStock} disponibles)
                 </span>
               ) : (
                 <span className="stock-unavailable">
-                  ✗ Rupture de stock
+                  Rupture de stock
                 </span>
               )}
             </div>
 
             {/* Actions */}
             <div className="product-actions">
-              <div className="quantity-selector">
-                <button 
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="quantity-btn"
-                  disabled={quantity <= 1}
-                >
-                  -
-                </button>
-                <input 
-                  type="number" 
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="quantity-input"
-                  min="1"
-                  max={product.stock}
-                />
-                <button 
-                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                  className="quantity-btn"
-                  disabled={quantity >= product.stock}
-                >
-                  +
-                </button>
+              {/* Message UX pour la quantité */}
+              <div className="quantity-header">
+                <p className="quantity-label">Choisissez la quantité souhaitée</p>
+                {selectedColor && selectedSize && (
+                  <p className="stock-info">Stock disponible : {currentStock}</p>
+                )}
               </div>
 
-              <div className="action-buttons">
-                <AddToCartButton
-                  onClick={handleAddToCart}
-                  disabled={isAddingToCart || product.stock === 0}
-                  className={isAddingToCart ? 'loading' : ''}
-                >
-                  {isAddingToCart ? 'Ajout...' : 'Ajouter au panier'}
-                </AddToCartButton>
-                
-                <AddToCartButton
-                  variant="secondary"
-                  onClick={handleBuyNow}
-                  disabled={isAddingToCart || product.stock === 0}
-                  className={isAddingToCart ? 'loading' : ''}
-                >
-                  {isAddingToCart ? 'Traitement...' : 'Acheter maintenant'}
-                </AddToCartButton>
-              </div>
+              {/* Cas : aucune sélection */}
+              {!selectedColor || !selectedSize ? (
+                <div className="quantity-disabled">
+                  <div className="quantity-message">
+                    Veuillez sélectionner une couleur et une taille
+                  </div>
+                </div>
+              ) : (
+                /* Cas : sélection complète */
+                currentStock === 0 ? (
+                  <div className="quantity-disabled">
+                    <div className="quantity-message stock-error">
+                      Rupture de stock pour cette combinaison
+                    </div>
+                  </div>
+                ) : (
+                  <div className="quantity-selector">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      className="quantity-btn"
+                      disabled={quantity <= 1}
+                    >
+                      -
+                    </button>
+                    <div className="quantity-display">
+                      {quantity}
+                    </div>
+                    <button 
+                      onClick={() => setQuantity(Math.min(currentStock, quantity + 1))}
+                      className="quantity-btn"
+                      disabled={quantity >= currentStock}
+                    >
+                      +
+                    </button>
+                  </div>
+                )
+              )}
+
+              {/* Boutons d'action - seulement si stock disponible */}
+              {(selectedColor && selectedSize && currentStock > 0) && (
+                <div className="action-buttons">
+                  <AddToCartButton
+                    onClick={handleAddToCart}
+                    disabled={isAddingToCart || currentStock === 0}
+                    className={isAddingToCart ? 'loading' : ''}
+                  >
+                    {isAddingToCart ? 'Ajout...' : 'Ajouter au panier'}
+                  </AddToCartButton>
+                  
+                  <AddToCartButton
+                    variant="secondary"
+                    onClick={handleBuyNow}
+                    disabled={isAddingToCart || currentStock === 0}
+                    className={isAddingToCart ? 'loading' : ''}
+                  >
+                    {isAddingToCart ? 'Traitement...' : 'Acheter maintenant'}
+                  </AddToCartButton>
+                </div>
+              )}
             </div>
 
             {/* Informations supplémentaires */}
