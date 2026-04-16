@@ -1,0 +1,19 @@
+.home {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Smooth scrolling for anchor links */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove default margins and paddings */
+* {
+  box-sizing: border-box;
+}
+
+/* Ensure sections stack properly */
+.home section {
+  width: 100%;
+}

@@ -1,0 +1,54 @@
+Tu travailles sur le frontend React du projet e-commerce "Lobel Store".
+
+Ce projet suit une architecture STRICTE qui doit être respectée à 100%.
+
+OBJECTIF :
+Avoir un code propre, structuré, maintenable et réutilisable.
+
+RÈGLES OBLIGATOIRES :
+
+1. 📁 STRUCTURATION DES FICHIERS
+- Tous les endpoints API doivent être définis UNIQUEMENT dans : endpoints.js
+- Tous les appels API doivent être dans : services/
+- Les composants UI doivent être dans : components/
+- Les pages doivent être dans : pages/
+- Ne jamais mélanger les responsabilités
+
+2. 🔁 RÉUTILISATION DU CODE
+- Avant de créer une nouvelle fonction, vérifier si elle existe déjà
+- Si une logique existe → la réutiliser
+- Ne jamais dupliquer du code
+- Factoriser tout ce qui est réutilisable
+
+3. 🚫 INTERDICTIONS
+- Ne pas appeler directement une API dans un composant
+- Ne pas écrire d’URL en dur dans le code
+- Ne pas créer de logique métier dans les composants
+- Ne pas contourner les services existants
+
+4. ⚙️ SERVICES
+- Toute communication avec le backend doit passer par les services
+- Les services doivent utiliser les endpoints définis dans endpoints.js
+- Les services doivent être réutilisables et indépendants
+
+5. 📦 ENDPOINTS
+- Tous les endpoints doivent être centralisés dans endpoints.js
+- Si un endpoint n’existe pas, l’ajouter dans ce fichier uniquement
+- Ne jamais hardcoder une URL ailleurs
+
+6. 🧼 QUALITÉ DU CODE
+- Code lisible et bien structuré
+- Noms de variables explicites
+- Séparation claire des responsabilités
+- Pas de code inutile
+
+7. 🧩 COHÉRENCE AVEC LE PROJET
+- Respecter l’architecture existante
+- Ne pas casser le code déjà en place
+- S’adapter à l’existant avant de proposer du nouveau code
+
+IMPORTANT :
+Si tu dois ajouter une fonctionnalité :
+1. Vérifie l’existant
+2. Réutilise ce qui existe
+3. Sinon crée en respectant STRICTEMENT cette architecture

@@ -1,0 +1,124 @@
+.color-selector {
+  margin-bottom: 24px;
+}
+
+.selector-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.selected-value {
+  font-size: 13px;
+  color: #666;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.color-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.color-option {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid #E0E0E0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.color-option:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: #999;
+}
+
+.color-option.selected {
+  border-color: #000;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.checkmark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* Couleurs spéciales avec patterns */
+.color-option[data-color="white"] {
+  background: linear-gradient(45deg, #fff 48%, #f0f0f0 48%, #f0f0f0 52%, #fff 52%);
+}
+
+.color-option[data-color="black"] {
+  background: #000;
+}
+
+.color-option[data-color="multicolor"] {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .color-selector {
+    margin-bottom: 20px;
+  }
+
+  .selector-label {
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+
+  .selected-value {
+    font-size: 12px;
+  }
+
+  .color-options {
+    gap: 10px;
+  }
+
+  .color-option {
+    width: 36px;
+    height: 36px;
+  }
+
+  .checkmark {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .color-option {
+    width: 32px;
+    height: 32px;
+  }
+
+  .checkmark {
+    font-size: 12px;
+  }
+
+  .color-options {
+    gap: 8px;
+  }
+}

@@ -1,0 +1,253 @@
+.collection-card {
+  display: block;
+  text-decoration: none;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  height: 400px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Carousel container */
+.collection-carousel-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.collection-carousel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.carousel-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1s ease-in-out;
+}
+
+.carousel-slide.active {
+  opacity: 1;
+}
+
+.carousel-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Indicateurs du carousel */
+.carousel-indicators {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+
+.indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.indicator.active {
+  background: white;
+  transform: scale(1.2);
+}
+
+.indicator:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Fond visuel pour collections vides */
+.collection-empty-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #F5F5DC 0%, #FFB6C1 50%, #FF91A4 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.collection-empty-pattern {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 40% 80%, rgba(255, 255, 255, 0.06) 0%, transparent 35%);
+  opacity: 0.6;
+}
+
+.collection-empty-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.03) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 40%, rgba(255, 255, 255, 0.02) 60%, transparent 80%);
+}
+
+.collection-empty-message {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.95);
+  margin: 12px 0 20px 0;
+  line-height: 1.5;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Styles spécifiques pour collections vides */
+.collection-card:not(:hover) .collection-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+}
+
+.collection-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.collection-image-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.collection-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.collection-card:hover .collection-image {
+  transform: scale(1.1);
+}
+
+.collection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  display: flex;
+  align-items: flex-end;
+  padding: 30px;
+}
+
+.collection-content {
+  color: white;
+  text-align: center;
+  width: 100%;
+}
+
+.collection-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  font-family: 'Georgia', serif;
+  letter-spacing: 1px;
+}
+
+.collection-subtitle {
+  font-size: 14px;
+  margin: 0 0 15px 0;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.collection-link {
+  display: inline-block;
+  padding: 10px 24px;
+  background: white;
+  color: #333;
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+}
+
+.collection-link:hover {
+  background: #FFB6C1;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .collection-card {
+    height: 350px;
+  }
+
+  .collection-overlay {
+    padding: 20px;
+  }
+
+  .collection-title {
+    font-size: 22px;
+  }
+
+  .collection-subtitle {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .collection-card {
+    height: 300px;
+  }
+
+  .collection-overlay {
+    padding: 15px;
+  }
+
+  .collection-title {
+    font-size: 20px;
+  }
+
+  .collection-subtitle {
+    font-size: 12px;
+  }
+
+  .collection-link {
+    padding: 8px 20px;
+    font-size: 12px;
+  }
+}

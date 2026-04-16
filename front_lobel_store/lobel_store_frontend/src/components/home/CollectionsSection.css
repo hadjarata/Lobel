@@ -1,0 +1,155 @@
+.collections-section {
+  padding: 20px 0;
+  background: white;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.section-title {
+  font-size: 36px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15px;
+  font-family: 'Georgia', serif;
+  letter-spacing: 1px;
+}
+
+.section-subtitle {
+  font-size: 18px;
+  color: #666;
+  margin: 0;
+  line-height: 1.6;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.collections-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+  margin-top: 40px;
+}
+
+/* Loading state */
+.collections-loading {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.collections-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #F5F5DC;
+  border-top: 4px solid #FFB6C1;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+.collections-loading p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* Error state */
+.collections-error {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.collections-error p {
+  color: #FF6B6B;
+  font-size: 16px;
+  margin: 0 0 20px;
+}
+
+.collections-error .retry-btn {
+  background: #FFB6C1;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.collections-error .retry-btn:hover {
+  background: #FF91A4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 182, 193, 0.3);
+}
+
+/* Empty state */
+.collections-empty {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.collections-empty p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .collections-section {
+    padding: 60px 0;
+  }
+
+  .container {
+    padding: 0 15px;
+  }
+
+  .section-title {
+    font-size: 32px;
+  }
+
+  .section-subtitle {
+    font-size: 16px;
+  }
+
+  .collections-grid {
+    gap: 25px;
+  }
+}
+
+@media (max-width: 768px) {
+  .collections-section {
+    padding: 40px 0;
+  }
+
+  .section-header {
+    margin-bottom: 40px;
+  }
+
+  .section-title {
+    font-size: 28px;
+  }
+
+  .section-subtitle {
+    font-size: 15px;
+  }
+
+  .collections-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

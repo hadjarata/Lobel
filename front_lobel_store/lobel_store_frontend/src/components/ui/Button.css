@@ -1,0 +1,135 @@
+.btn {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  text-transform: none;
+  letter-spacing: 0.5px;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.3);
+}
+
+/* Variants */
+.btn-primary {
+  background: #FFB6C1;
+  color: white;
+}
+
+.btn-primary:hover:not(.btn-disabled) {
+  background: #FF91A4;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 182, 193, 0.3);
+}
+
+.btn-secondary {
+  background: white;
+  color: #FFB6C1;
+  border: 2px solid #FFB6C1;
+}
+
+.btn-secondary:hover:not(.btn-disabled) {
+  background: #FFB6C1;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 182, 193, 0.3);
+}
+
+.btn-gold {
+  background: #DAA520;
+  color: white;
+}
+
+.btn-gold:hover:not(.btn-disabled) {
+  background: #B8941F;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(218, 165, 32, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-outline:hover:not(.btn-disabled) {
+  background: #F5F5DC;
+  border-color: #FFB6C1;
+  color: #FFB6C1;
+}
+
+/* Sizes */
+.btn-small {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.btn-medium {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+.btn-large {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+.btn-xlarge {
+  padding: 20px 40px;
+  font-size: 18px;
+}
+
+/* States */
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .btn-large {
+    padding: 14px 28px;
+    font-size: 15px;
+  }
+
+  .btn-xlarge {
+    padding: 16px 32px;
+    font-size: 16px;
+  }
+}
