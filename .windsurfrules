@@ -1,54 +1,65 @@
-Tu travailles sur le frontend React du projet e-commerce "Lobel Store".
+PROJECT: Lobel Store (React + Django API)
 
-Ce projet suit une architecture STRICTE qui doit être respectée à 100%.
+OBJECTIF:
+Nettoyer et réorganiser le frontend pour obtenir une structure propre, professionnelle et maintenable, SANS modifier la logique métier existante.
 
-OBJECTIF :
-Avoir un code propre, structuré, maintenable et réutilisable.
+CONTRAINTES CRITIQUES:
+- NE PAS modifier le backend (Django)
+- NE PAS changer les endpoints API existants
+- NE PAS casser les fonctionnalités actuelles
+- NE PAS réécrire la logique métier
+- UNIQUEMENT refactor structure + imports + organisation
 
-RÈGLES OBLIGATOIRES :
+RÈGLES STRICTES:
 
-1. 📁 STRUCTURATION DES FICHIERS
-- Tous les endpoints API doivent être définis UNIQUEMENT dans : endpoints.js
-- Tous les appels API doivent être dans : services/
-- Les composants UI doivent être dans : components/
-- Les pages doivent être dans : pages/
-- Ne jamais mélanger les responsabilités
+1. SUPPRESSION DES DOUBLONS
+- Identifier et supprimer tous les fichiers dupliqués ou inutilisés
+- Garder UNE seule version de chaque logique (Auth, Product, API)
 
-2. 🔁 RÉUTILISATION DU CODE
-- Avant de créer une nouvelle fonction, vérifier si elle existe déjà
-- Si une logique existe → la réutiliser
-- Ne jamais dupliquer du code
-- Factoriser tout ce qui est réutilisable
+2. CENTRALISATION API
+- Supprimer complètement le dossier /services
+- Déplacer toute la logique API dans /api
+- Créer des fichiers:
+  - api/auth.js
+  - api/products.js
+  - api/cart.js
+  - api/orders.js
+  - api/payments.js
 
-3. 🚫 INTERDICTIONS
-- Ne pas appeler directement une API dans un composant
-- Ne pas écrire d’URL en dur dans le code
-- Ne pas créer de logique métier dans les composants
-- Ne pas contourner les services existants
+3. AUTHENTIFICATION
+- Garder un seul AuthContext (AuthContext.jsx)
+- Supprimer toute logique auth dupliquée ailleurs
+- Ne pas casser login/register existants
 
-4. ⚙️ SERVICES
-- Toute communication avec le backend doit passer par les services
-- Les services doivent utiliser les endpoints définis dans endpoints.js
-- Les services doivent être réutilisables et indépendants
+4. PRODUITS
+- Fusionner components/product et components/products
+- Garder uniquement components/products
+- Supprimer les composants dupliqués (ex: ProductGallery en double)
 
-5. 📦 ENDPOINTS
-- Tous les endpoints doivent être centralisés dans endpoints.js
-- Si un endpoint n’existe pas, l’ajouter dans ce fichier uniquement
-- Ne jamais hardcoder une URL ailleurs
+5. HOOKS
+- Supprimer hooks inutiles ou redondants (ex: useRequireAuth si non nécessaire)
+- Centraliser la logique auth dans AuthContext
 
-6. 🧼 QUALITÉ DU CODE
-- Code lisible et bien structuré
-- Noms de variables explicites
-- Séparation claire des responsabilités
-- Pas de code inutile
+6. IMPORTS
+- Corriger TOUS les imports après refactor
+- Aucune erreur de compilation ne doit rester
 
-7. 🧩 COHÉRENCE AVEC LE PROJET
-- Respecter l’architecture existante
-- Ne pas casser le code déjà en place
-- S’adapter à l’existant avant de proposer du nouveau code
+7. STRUCTURE FINALE ATTENDUE
 
-IMPORTANT :
-Si tu dois ajouter une fonctionnalité :
-1. Vérifie l’existant
-2. Réutilise ce qui existe
-3. Sinon crée en respectant STRICTEMENT cette architecture
+src/
+  api/
+  components/
+  context/
+  pages/
+  utils/
+
+8. QUALITÉ
+- Code propre et lisible
+- Pas de fichiers morts
+- Pas de duplication
+- Pas de code inutilisé
+
+IMPORTANT:
+Ne pas ajouter de nouvelles fonctionnalités.
+Ne pas modifier les comportements existants.
+Uniquement nettoyer, organiser et structurer.

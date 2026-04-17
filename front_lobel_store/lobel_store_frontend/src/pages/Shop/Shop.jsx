@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProducts } from '../../services/productService';
+import { getProducts } from '../../api/products';
 import ProductGrid from '../../components/products/ProductGrid';
 import FilterSidebar from '../../components/ui/FilterSidebar';
 import Pagination from '../../components/ui/Pagination';

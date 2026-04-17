@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProductById, getProducts } from '../../services/productService';
+import { getProductById, getProducts } from '../../api/products';
 import { useAuth } from '../../context/AuthContext';
-import ProductGallery from '../../components/product/ProductGallery';
-import ColorSelector from '../../components/product/ColorSelector';
-import SizeSelector from '../../components/product/SizeSelector';
-import AddToCartButton from '../../components/product/AddToCartButton';
+import ProductGallery from '../../components/products/ProductGallery';
+import ColorSelector from '../../components/products/ColorSelector';
+import SizeSelector from '../../components/products/SizeSelector';
+import AddToCartButton from '../../components/products/AddToCartButton';
 import ProductGrid from '../../components/products/ProductGrid';
 import './Product.css';
 
 const Product = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { requireAuth, isAuthenticated } = useAuth();
+  const { isAuthenticated, requireAuth } = useAuth();
   
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
@@ -204,10 +204,9 @@ const Product = () => {
   };
 
   const handleAddToCart = async () => {
-    // Protection du panier - vérifier l'authentification
-    if (!isAuthenticated) {
-      requireAuth();
-      return;
+    // Protection du panier avec hook centralisé
+    if (!requireAuth()) {
+      return; // Redirection automatique gérée par useRequireAuth
     }
 
     // Vérifier si les variantes sont sélectionnées
@@ -257,6 +256,11 @@ const Product = () => {
   };
 
   const handleBuyNow = async () => {
+    // Protection du checkout avec hook centralisé
+    if (!requireAuth()) {
+      return; // Redirection automatique gérée par useRequireAuth
+    }
+    
     await handleAddToCart();
     navigate('/checkout');
   };

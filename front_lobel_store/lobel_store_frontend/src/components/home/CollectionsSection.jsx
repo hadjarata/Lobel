@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CollectionCard from '../products/CollectionCard';
-import { getCollections, getProducts } from '../../services/productService';
+import { getCollections, getProducts } from '../../api/products';
 import './CollectionsSection.css';
 
 const CollectionsSection = () => {

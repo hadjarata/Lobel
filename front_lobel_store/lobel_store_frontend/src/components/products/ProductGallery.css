@@ -1,17 +1,29 @@
 .product-gallery {
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.main-image-container {
+.main-media-container {
   position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: 4/5;
+  background: #F8F9FA;
   border-radius: 12px;
   overflow: hidden;
-  background: #F5F5DC;
+  margin-bottom: 20px;
+}
+
+.main-media {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  position: relative;
+}
+
+.main-media.zoomed {
+  cursor: zoom-out;
 }
 
 .main-image {
@@ -19,175 +31,358 @@
   height: 100%;
   object-fit: cover;
   transition: transform 0.3s ease;
+  border-radius: 12px;
 }
 
-.main-image:hover {
-  transform: scale(1.05);
+.main-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
 }
 
-.gallery-nav {
+/* Gestion des erreurs de médias */
+.media-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: #F8F9FA;
+  border-radius: 12px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Navigation desktop */
+.nav-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
   width: 40px;
   height: 40px;
-  background: white;
-  border: none;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 18px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  z-index: 10;
   color: #333;
-  z-index: 2;
 }
 
-.gallery-nav:hover {
-  background: #FFB6C1;
+.nav-btn:hover:not(:disabled) {
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.prev-btn {
+  left: 10px;
+}
+
+.next-btn {
+  right: 10px;
+}
+
+/* Indicateurs */
+.media-indicator {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
   color: white;
-  transform: translateY(-50%) scale(1.1);
-  box-shadow: 0 4px 15px rgba(255, 182, 193, 0.3);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  z-index: 5;
 }
 
-.gallery-nav-prev {
-  left: 15px;
+.video-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.gallery-nav-next {
-  right: 15px;
+.image-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
+.progress-indicator {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  z-index: 5;
+}
+
+/* Thumbnails */
 .thumbnails-container {
   width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.thumbnails-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 10px;
+.thumbnails-container::-webkit-scrollbar {
+  display: none;
+}
+
+.thumbnails {
+  display: flex;
+  gap: 8px;
+  padding: 0 2px;
 }
 
 .thumbnail {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1;
+  flex: 0 0 80px;
+  width: 80px;
+  height: 100px;
   border: 2px solid transparent;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: #F5F5DC;
+  transition: all 0.2s ease;
+  position: relative;
+  background: #F8F9FA;
 }
 
 .thumbnail:hover {
-  border-color: #FFB6C1;
-  transform: scale(1.05);
+  border-color: #E0E0E0;
+  transform: translateY(-2px);
 }
 
 .thumbnail.active {
-  border-color: #FFB6C1;
-  box-shadow: 0 0 0 2px white, 0 0 0 4px #FFB6C1;
+  border-color: #000;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
 }
 
 .thumbnail-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 8px;
 }
 
-/* Placeholder */
-.gallery-placeholder {
+.thumbnail-video {
   width: 100%;
-  aspect-ratio: 1;
-  background: #F5F5DC;
+  height: 100%;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.thumbnail-video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+  border-radius: 8px;
+}
+
+.thumbnail-error {
+  width: 100%;
+  height: 100%;
+  background: #F8F9FA;
+  border: 2px dashed #DDD;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 18px;
+}
+
+.thumbnail-video {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.thumbnail-video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+}
+
+/* Zoom overlay */
+.zoom-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  padding: 20px;
+}
+
+.zoomed-image-container {
+  max-width: 90vw;
+  max-height: 90vh;
+  position: relative;
+}
+
+.zoomed-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.zoom-close {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.zoom-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Empty state */
+.product-gallery-empty {
+  width: 100%;
+  aspect-ratio: 4/5;
+  background: #F8F9FA;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.placeholder-image {
-  opacity: 0.5;
+  color: #666;
+  font-size: 14px;
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-  .product-gallery {
-    gap: 15px;
-  }
-
-  .gallery-nav {
-    width: 36px;
-    height: 36px;
-  }
-
-  .gallery-nav svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .thumbnails-grid {
-    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-    gap: 8px;
-  }
-}
-
 @media (max-width: 768px) {
   .product-gallery {
-    gap: 12px;
+    max-width: 100%;
   }
 
-  .gallery-nav {
-    width: 32px;
-    height: 32px;
+  .main-media-container {
+    aspect-ratio: 1/1;
+    margin-bottom: 16px;
   }
 
-  .gallery-nav svg {
-    width: 18px;
-    height: 18px;
+  .nav-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
   }
 
-  .gallery-nav-prev {
-    left: 10px;
+  .prev-btn {
+    left: 8px;
   }
 
-  .gallery-nav-next {
-    right: 10px;
+  .next-btn {
+    right: 8px;
   }
 
-  .thumbnails-grid {
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 6px;
+  .thumbnail {
+    flex: 0 0 70px;
+    width: 70px;
+    height: 90px;
+  }
+
+  .media-indicator,
+  .progress-indicator {
+    font-size: 11px;
+    padding: 3px 8px;
   }
 }
 
 @media (max-width: 480px) {
-  .product-gallery {
-    gap: 10px;
+  .main-media-container {
+    aspect-ratio: 1/1;
+    border-radius: 8px;
   }
 
-  .gallery-nav {
-    width: 28px;
-    height: 28px;
+  .nav-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
   }
 
-  .gallery-nav svg {
-    width: 16px;
-    height: 16px;
+  .prev-btn {
+    left: 6px;
   }
 
-  .gallery-nav-prev {
-    left: 8px;
+  .next-btn {
+    right: 6px;
   }
 
-  .gallery-nav-next {
-    right: 8px;
+  .thumbnail {
+    flex: 0 0 60px;
+    width: 60px;
+    height: 80px;
   }
 
-  .thumbnails-grid {
-    grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-    gap: 5px;
+  .thumbnails {
+    gap: 6px;
+  }
+
+  .media-indicator,
+  .progress-indicator {
+    font-size: 10px;
+    padding: 2px 6px;
   }
 }

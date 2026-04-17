@@ -1,8 +1,135 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { login as loginService, register as registerService } from '../services/authService';
+import { login as loginService, register as registerService, getCurrentUser } from '../api/auth';
 
 const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // Loading initial pour vérifier le token
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Vérifier si l'utilisateur est déjà connecté au chargement
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('access');
+      
+      if (token) {
+        try {
+          const userData = await getCurrentUser();
+          setUser(userData);
+          setIsAuthenticated(true);
+        } catch (error) {
+          // Token invalide, nettoyer le localStorage
+          localStorage.removeItem('access');
+          localStorage.removeItem('refresh');
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      }
+      
+      setLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  const login = async (credentials) => {
+    setLoading(true);
+    try {
+      const data = await loginService(credentials);
+
+      // Stocker les tokens
+      localStorage.setItem('access', data.access);
+      localStorage.setItem('refresh', data.refresh);
+
+      // Récupérer les données utilisateur
+      const userData = await getCurrentUser();
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      return data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const register = async (userData) => {
+    setLoading(true);
+    try {
+      const data = await registerService(userData);
+
+      // Si l'inscription renvoie des tokens (cas rare)
+      if (data.access && data.refresh) {
+        localStorage.setItem('access', data.access);
+        localStorage.setItem('refresh', data.refresh);
+        
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+        setIsAuthenticated(true);
+      }
+
+      return data;
+    } catch (error) {
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = () => {
+    // Nettoyer le localStorage
+    localStorage.removeItem('access');
+    localStorage.removeItem('refresh');
+    
+    // Réinitialiser l'état
+    setUser(null);
+    setIsAuthenticated(false);
+    setLoading(false);
+  };
+
+  // Fonction pour protéger les actions nécessitant une authentification
+  const requireAuth = (callback = null) => {
+    if (!isAuthenticated) {
+      // Sauvegarder la page actuelle pour le retour après login
+      navigate('/login', { 
+        state: { 
+          from: { 
+            pathname: location.pathname,
+            search: location.search 
+          },
+          message: 'Veuillez vous connecter pour continuer'
+        } 
+      });
+      return false;
+    }
+    
+    // Si connecté et callback fourni, exécuter le callback
+    if (callback && typeof callback === 'function') {
+      callback();
+    }
+    
+    return true;
+  };
+
+  return (
+    <AuthContext.Provider value={{
+      user,
+      login,
+      register,
+      logout,
+      loading,
+      isAuthenticated,
+      requireAuth
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -11,173 +138,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // Vérifier l'authentification au chargement
-  useEffect(() => {
-    const initAuth = () => {
-      try {
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
-          setIsAuthenticated(true);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        // Nettoyer les données corrompues
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initAuth();
-  }, []);
-
-  // Login
-  const login = useCallback(async (credentials) => {
-    try {
-      setLoading(true);
-      const response = await loginService(credentials);
-      
-      if (response.token && response.user) {
-        // Stocker les données
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        
-        // Mettre à jour l'état
-        setToken(response.token);
-        setUser(response.user);
-        setIsAuthenticated(true);
-
-        // Redirection intelligente
-        const from = location.state?.from?.pathname || '/shop';
-        navigate(from, { replace: true });
-        
-        return { success: true };
-      } else {
-        throw new Error('Réponse invalide du serveur');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Erreur de connexion' 
-      };
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate, location]);
-
-  // Register
-  const register = useCallback(async (userData) => {
-    try {
-      setLoading(true);
-      const response = await registerService(userData);
-      
-      if (response.token && response.user) {
-        // Stocker les données
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        
-        // Mettre à jour l'état
-        setToken(response.token);
-        setUser(response.user);
-        setIsAuthenticated(true);
-
-        // Redirection après inscription
-        navigate('/shop', { replace: true });
-        
-        return { success: true };
-      } else {
-        throw new Error('Réponse invalide du serveur');
-      }
-    } catch (error) {
-      console.error('Register error:', error);
-      return { 
-        success: false, 
-        error: error.response?.data?.message || 'Erreur d\'inscription' 
-      };
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  // Logout
-  const logout = useCallback(() => {
-    // Nettoyer localStorage
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
-    // Réinitialiser l'état
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    
-    // Redirection vers login
-    navigate('/login');
-  }, [navigate]);
-
-  // Vérifier si l'utilisateur est authentifié
-  const checkAuth = useCallback(() => {
-    return isAuthenticated && !!token;
-  }, [isAuthenticated, token]);
-
-  // Rediriger vers login si non authentifié
-  const requireAuth = useCallback(() => {
-    if (!isAuthenticated) {
-      // Sauvegarder la page actuelle pour redirection après login
-      navigate('/login', { 
-        state: { from: location },
-        replace: true 
-      });
-      return false;
-    }
-    return true;
-  }, [isAuthenticated, navigate, location]);
-
-  // Obtenir le token pour les requêtes API
-  const getAuthToken = useCallback(() => {
-    return token || localStorage.getItem('token');
-  }, [token]);
-
-  const value = {
-    // État
-    user,
-    token,
-    loading,
-    isAuthenticated,
-    
-    // Actions
-    login,
-    register,
-    logout,
-    checkAuth,
-    requireAuth,
-    getAuthToken,
-    
-    // Utilitaires
-    isLoading: loading,
-    hasToken: !!token,
-    currentUser: user
-  };
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
-};
-
-export default AuthContext;
