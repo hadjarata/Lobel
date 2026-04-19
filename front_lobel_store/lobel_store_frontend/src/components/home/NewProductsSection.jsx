@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import ProductCard from '../products/ProductCard';
+import ProductCard from '../product/ProductCard';
 import { getNewProducts } from '../../api/products';
 import './NewProductsSection.css';
 

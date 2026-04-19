@@ -5,9 +5,11 @@ import { validateLogin } from '../../api/auth';
 import './Auth.css';
 
 const Login = () => {
+  console.log('Login.jsx - Composant monté');
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loading, user } = useAuth();
+  console.log('Login.jsx - useAuth hook:', { login: !!login, loading, user: !!user });
 
   // Afficher le message de redirection et gérer la redirection automatique
   useEffect(() => {
@@ -33,6 +35,8 @@ const Login = () => {
   const [loginErrors, setLoginErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [infoMessage, setInfoMessage] = useState('');
+  
+  console.log('Login.jsx - État loading au montage:', loading);
 
   // Gérer les changements dans le formulaire
   const handleChange = (e) => {
@@ -50,27 +54,37 @@ const Login = () => {
 
   // Soumettre le formulaire de login
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    console.log('handleSubmit déclenché');
+    e.preventDefault();
 
-  if (loading) return;
+    if (loading) {
+      console.log('Loading bloqué');
+      return;
+    }
 
-  const validation = validateLogin(loginData);
-  if (!validation.isValid) {
-    setLoginErrors(validation.errors);
-    return;
-  }
+    console.log('Données login:', loginData);
 
-  try {
-    await login(loginData);
-  } catch (error) {
-    const message =
-      error.response?.data?.detail ||
-      error.response?.data?.message ||
-      'Email ou mot de passe incorrect';
+    const validation = validateLogin(loginData);
+    if (!validation.isValid) {
+      console.log('Validation échouée:', validation.errors);
+      setLoginErrors(validation.errors);
+      return;
+    }
 
-    setSubmitError(message);
-  }
-};
+    console.log('Validation OK, appel de login()');
+    try {
+      await login(loginData);
+      console.log('Login réussi');
+    } catch (error) {
+      console.log('Erreur login:', error);
+      const message =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        'Email ou mot de passe incorrect';
+
+      setSubmitError(message);
+    }
+  };
 
   return (
     <div className="auth-container">
@@ -83,7 +97,13 @@ const Login = () => {
           <p>Accédez à votre compte</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+        <form 
+          onSubmit={handleSubmit} 
+          className="auth-form"
+          onClick={() => console.log('Form clicked')}
+          onMouseDown={() => console.log('Form mouse down')}
+          onSubmitCapture={(e) => console.log('Submit capture', e)}
+        >
           {infoMessage && (
             <div className="auth-info">
               {infoMessage}
@@ -134,6 +154,8 @@ const Login = () => {
             type="submit" 
             className="auth-submit-btn"
             disabled={loading}
+            onClick={() => console.log('Button clicked!')}
+            onMouseDown={() => console.log('Button mouse down!')}
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>

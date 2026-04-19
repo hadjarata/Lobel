@@ -3,10 +3,10 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const PrivateRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  if (!user) {
+  if (!isAuthenticated) {
     // Rediriger vers login avec l'URL de retour
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

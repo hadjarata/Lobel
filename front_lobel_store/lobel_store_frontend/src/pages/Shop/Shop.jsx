@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProducts } from '../../api/products';
-import ProductGrid from '../../components/products/ProductGrid';
+import ProductGrid from '../../components/product/ProductGrid';
 import FilterSidebar from '../../components/ui/FilterSidebar';
 import Pagination from '../../components/ui/Pagination';
 import './Shop.css';

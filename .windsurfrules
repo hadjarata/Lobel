@@ -1,65 +1,121 @@
-PROJECT: Lobel Store (React + Django API)
+# 🔒 WINDSURF RULES – LOBEL STORE FRONTEND
 
-OBJECTIF:
-Nettoyer et réorganiser le frontend pour obtenir une structure propre, professionnelle et maintenable, SANS modifier la logique métier existante.
+## 🎯 OBJECTIF
+Maintenir une architecture propre, cohérente et maintenable.
+Aucune duplication, aucun fichier inutile, aucun code mort.
 
-CONTRAINTES CRITIQUES:
-- NE PAS modifier le backend (Django)
-- NE PAS changer les endpoints API existants
-- NE PAS casser les fonctionnalités actuelles
-- NE PAS réécrire la logique métier
-- UNIQUEMENT refactor structure + imports + organisation
+---
 
-RÈGLES STRICTES:
+## 🚫 INTERDICTIONS STRICTES
 
-1. SUPPRESSION DES DOUBLONS
-- Identifier et supprimer tous les fichiers dupliqués ou inutilisés
-- Garder UNE seule version de chaque logique (Auth, Product, API)
+❌ Ne JAMAIS créer :
+- de dossier en double (ex: product / products)
+- de fichier dupliqué
+- de nouvelle structure sans validation
 
-2. CENTRALISATION API
-- Supprimer complètement le dossier /services
-- Déplacer toute la logique API dans /api
-- Créer des fichiers:
-  - api/auth.js
-  - api/products.js
-  - api/cart.js
-  - api/orders.js
-  - api/payments.js
+❌ Ne JAMAIS :
+- recréer un composant déjà existant
+- dupliquer de la logique existante
+- créer des variantes inutiles d’un même composant
 
-3. AUTHENTIFICATION
-- Garder un seul AuthContext (AuthContext.jsx)
-- Supprimer toute logique auth dupliquée ailleurs
-- Ne pas casser login/register existants
+❌ Ne PAS toucher au backend :
+- aucun endpoint modifié
+- aucune route modifiée
+- aucune logique backend modifiée
+SAUF instruction explicite
 
-4. PRODUITS
-- Fusionner components/product et components/products
-- Garder uniquement components/products
-- Supprimer les composants dupliqués (ex: ProductGallery en double)
+---
 
-5. HOOKS
-- Supprimer hooks inutiles ou redondants (ex: useRequireAuth si non nécessaire)
-- Centraliser la logique auth dans AuthContext
-
-6. IMPORTS
-- Corriger TOUS les imports après refactor
-- Aucune erreur de compilation ne doit rester
-
-7. STRUCTURE FINALE ATTENDUE
+## ✅ ARCHITECTURE À RESPECTER (OBLIGATOIRE)
 
 src/
-  api/
-  components/
-  context/
-  pages/
-  utils/
+├── api/                → appels API uniquement
+├── components/
+│   ├── product/        → TOUS les composants liés aux produits
+│   ├── layout/
+│   ├── home/
+│   └── ui/
+├── context/            → gestion globale (Auth uniquement)
+├── pages/
+│   ├── auth/
+│   ├── Product/
+│   ├── Shop/
+│   └── Home/
+├── hooks/
+├── services/ ❌ (INTERDIT sauf instruction)
+├── utils/
 
-8. QUALITÉ
-- Code propre et lisible
-- Pas de fichiers morts
-- Pas de duplication
-- Pas de code inutilisé
+---
 
-IMPORTANT:
-Ne pas ajouter de nouvelles fonctionnalités.
-Ne pas modifier les comportements existants.
-Uniquement nettoyer, organiser et structurer.
+## 📦 RÈGLES COMPOSANTS
+
+- Un composant = une seule responsabilité
+- Réutiliser avant de créer
+- Ne pas dupliquer ProductGallery, ProductCard, etc.
+- Tous les composants produits → components/product/
+
+---
+
+## 🔗 API RULES
+
+- Tous les appels API → /api
+- Utiliser axios.js comme base
+- Ne jamais recréer une couche API ailleurs
+- Ne jamais utiliser /services
+
+---
+
+## 🔐 AUTH RULES
+
+- Toute la logique auth → context/AuthContext.jsx
+- Ne pas recréer de hooks ou services auth
+- Utiliser uniquement api/auth.js
+
+---
+
+## 🧹 CLEAN CODE
+
+- Supprimer tout code inutile
+- Supprimer les imports non utilisés
+- Supprimer les fichiers morts
+- Pas de console.log inutiles
+
+---
+
+## 🎨 UI / UX
+
+- Design cohérent avec le site
+- Responsive obligatoire
+- Pas de débordement visuel
+- Alignement propre
+
+---
+
+## ⚠️ AVANT CHAQUE MODIFICATION
+
+Toujours vérifier :
+- Est-ce que ce fichier existe déjà ?
+- Est-ce que je peux réutiliser ?
+- Est-ce que je crée un doublon ?
+
+---
+
+## ✅ OBJECTIF FINAL
+
+Un code :
+✔ propre  
+✔ lisible  
+✔ sans duplication  
+✔ maintenable  
+✔ stable  
+
+---
+
+## 🚨 RÈGLE ABSOLUE
+
+Si une modification risque de :
+- casser l’architecture
+- créer un doublon
+- modifier le backend
+
+👉 NE RIEN FAIRE et attendre instruction.

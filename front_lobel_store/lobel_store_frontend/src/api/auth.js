@@ -1,21 +1,32 @@
 import api from "./axios";
+import { ENDPOINTS } from "./endpoints";
 
+// =========================
+// LOGIN
+// =========================
 export const login = async (credentials) => {
+  console.log('api/auth.login() appelé avec:', credentials);
   try {
-    const response = await api.post('/api/token/', credentials);
-    return response.data; // access + refresh
+    const payload = {
+      username: credentials.email, // Utiliser uniquement l'email
+      password: credentials.password
+    };
+    console.log('Payload envoyé:', payload);
+    console.log('Endpoint:', ENDPOINTS.LOGIN);
+    
+    const response = await api.post(ENDPOINTS.LOGIN, payload);
+    console.log('Réponse API:', response.data);
+
+    return response.data;
 
   } catch (error) {
+    console.log('Erreur API login:', error);
     if (error.response) {
       const message = error.response.data?.detail;
+      console.log('Message erreur:', message);
 
-      // Messages d'erreur Django JWT
       if (message === "No active account found with the given credentials") {
         throw new Error("Email ou mot de passe incorrect");
-      }
-
-      if (message === "This field may not be blank.") {
-        throw new Error("Veuillez remplir tous les champs");
       }
 
       throw new Error(message || "Erreur de connexion");
@@ -25,9 +36,26 @@ export const login = async (credentials) => {
   }
 };
 
+// =========================
+// REGISTER
+// =========================
 export const register = async (userData) => {
   try {
-    const response = await api.post('/api/users/customers/', userData);
+    // Générer un username unique à partir de l'email pour Django
+    const username = userData.email.split('@')[0] + '_' + Date.now();
+    
+    const registerPayload = {
+      ...userData,
+      username: username, // Ajouter username généré pour Django
+      user: {
+        username: username, // Username pour le User Django
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        email: userData.email
+      }
+    };
+    
+    const response = await api.post(ENDPOINTS.REGISTER, registerPayload);
     return response.data;
   } catch (error) {
     if (error.response?.data) {
@@ -42,67 +70,59 @@ export const register = async (userData) => {
   }
 };
 
+// =========================
+// REFRESH TOKEN
+// =========================
 export const refreshToken = async (refresh) => {
-  try {
-    const response = await api.post('/api/token/refresh/', { refresh });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.post(ENDPOINTS.REFRESH_TOKEN, { refresh });
+  return response.data;
 };
 
+// =========================
+// LOGOUT
+// =========================
 export const logout = async () => {
   try {
-    const response = await api.post('/api/logout/');
-    return response.data;
+    await api.post(ENDPOINTS.LOGOUT);
   } catch (error) {
-    throw error;
+    // ⚠️ optionnel : certains backends n'ont pas logout
   }
 };
 
+// =========================
+// USER
+// =========================
 export const getCurrentUser = async () => {
-  try {
-    const response = await api.get('/api/users/me/');
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.get(ENDPOINTS.CURRENT_USER);
+  return response.data;
 };
 
 export const updateProfile = async (userData) => {
-  try {
-    const response = await api.put('/api/users/me/', userData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.put(ENDPOINTS.CURRENT_USER, userData);
+  return response.data;
 };
 
+// =========================
+// PASSWORD
+// =========================
 export const changePassword = async (passwordData) => {
-  try {
-    const response = await api.post('/api/password/change/', passwordData);
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await api.post(ENDPOINTS.CHANGE_PASSWORD, passwordData);
+  return response.data;
 };
 
-// Validation des formulaires
 export const validateLogin = (credentials) => {
   const errors = {};
-  
+
   if (!credentials.email) {
-    errors.email = 'L\'email est requis';
+    errors.email = "L'email est requis";
   } else if (!/\S+@\S+\.\S+/.test(credentials.email)) {
-    errors.email = 'L\'email n\'est pas valide';
+    errors.email = "Email invalide";
   }
-  
+
   if (!credentials.password) {
-    errors.password = 'Le mot de passe est requis';
-  } else if (credentials.password.length < 6) {
-    errors.password = 'Le mot de passe doit contenir au moins 6 caractères';
+    errors.password = "Mot de passe requis";
   }
-  
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors
@@ -111,35 +131,43 @@ export const validateLogin = (credentials) => {
 
 export const validateRegister = (userData) => {
   const errors = {};
-  
+
+  // =========================
+  // FIRST NAME
+  // =========================
   if (!userData.first_name) {
-    errors.first_name = 'Le nom est requis';
+    errors.first_name = "Le prénom est requis";
+  } else if (userData.first_name.length < 2) {
+    errors.first_name = "Le prénom doit contenir au moins 2 caractères";
   }
-  
+
+  // =========================
+  // LAST NAME
+  // =========================
   if (!userData.last_name) {
-    errors.last_name = 'Le prénom est requis';
+    errors.last_name = "Le nom est requis";
+  } else if (userData.last_name.length < 2) {
+    errors.last_name = "Le nom doit contenir au moins 2 caractères";
   }
-  
+
+  // =========================
+  // EMAIL
+  // =========================
   if (!userData.email) {
-    errors.email = 'L\'email est requis';
+    errors.email = "L'email est requis";
   } else if (!/\S+@\S+\.\S+/.test(userData.email)) {
-    errors.email = 'L\'email n\'est pas valide';
+    errors.email = "Email invalide";
   }
-  
+
+  // =========================
+  // PASSWORD
+  // =========================
   if (!userData.password) {
-    errors.password = 'Le mot de passe est requis';
-  } else if (userData.password.length < 8) {
-    errors.password = 'Le mot de passe doit contenir au moins 8 caractères';
-  } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(userData.password)) {
-    errors.password = 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre';
+    errors.password = "Le mot de passe est requis";
+  } else if (userData.password.length < 6) {
+    errors.password = "Le mot de passe doit contenir au moins 6 caractères";
   }
-  
-  if (!userData.confirm_password) {
-    errors.confirm_password = 'La confirmation du mot de passe est requise';
-  } else if (userData.password !== userData.confirm_password) {
-    errors.confirm_password = 'Les mots de passe ne correspondent pas';
-  }
-  
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors

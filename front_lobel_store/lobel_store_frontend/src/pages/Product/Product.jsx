@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById, getProducts } from '../../api/products';
 import { useAuth } from '../../context/AuthContext';
-import ProductGallery from '../../components/products/ProductGallery';
-import ColorSelector from '../../components/products/ColorSelector';
-import SizeSelector from '../../components/products/SizeSelector';
-import AddToCartButton from '../../components/products/AddToCartButton';
-import ProductGrid from '../../components/products/ProductGrid';
+import ProductGallery from '../../components/product/ProductGallery';
+import ColorSelector from '../../components/product/ColorSelector';
+import SizeSelector from '../../components/product/SizeSelector';
+import AddToCartButton from '../../components/product/AddToCartButton';
+import ProductGrid from '../../components/product/ProductGrid';
 import './Product.css';
 
 const Product = () => {

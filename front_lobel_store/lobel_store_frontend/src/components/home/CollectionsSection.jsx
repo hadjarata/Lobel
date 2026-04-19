@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import CollectionCard from '../products/CollectionCard';
+import CollectionCard from '../product/CollectionCard';
 import { getCollections, getProducts } from '../../api/products';
 import './CollectionsSection.css';
 

@@ -37,21 +37,28 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (credentials) => {
+    console.log('AuthContext.login() appelé avec:', credentials);
     setLoading(true);
     try {
+      console.log('Appel de loginService...');
       const data = await loginService(credentials);
+      console.log('loginService réponse:', data);
 
       // Stocker les tokens
       localStorage.setItem('access', data.access);
       localStorage.setItem('refresh', data.refresh);
+      console.log('Tokens stockés');
 
       // Récupérer les données utilisateur
+      console.log('Récupération user data...');
       const userData = await getCurrentUser();
+      console.log('User data reçue:', userData);
       setUser(userData);
       setIsAuthenticated(true);
 
       return data;
     } catch (error) {
+      console.log('Erreur dans AuthContext.login:', error);
       throw error;
     } finally {
       setLoading(false);
@@ -132,9 +139,23 @@ export const AuthProvider = ({ children }) => {
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  console.log('useAuth hook appelé');
+  try {
+    const context = useContext(AuthContext);
+    console.log('useAuth context obtenu:', !!context);
+    if (!context) {
+      console.log('useAuth ERREUR: context non trouvé!');
+      throw new Error('useAuth must be used within an AuthProvider');
+    }
+    console.log('useAuth retourné:', { 
+      login: !!context.login, 
+      loading: context.loading, 
+      user: !!context.user,
+      isAuthenticated: context.isAuthenticated 
+    });
+    return context;
+  } catch (error) {
+    console.log('useAuth ERREUR:', error);
+    throw error;
   }
-  return context;
 };
