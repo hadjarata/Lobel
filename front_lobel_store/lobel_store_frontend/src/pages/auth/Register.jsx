@@ -8,13 +8,6 @@ const Register = () => {
   const navigate = useNavigate();
   const { register, loading, user } = useAuth();
 
-  // Redirection automatique si déjà connecté
-  useEffect(() => {
-    if (user) {
-      navigate('/shop', { replace: true });
-    }
-  }, [user, navigate]);
-  
   // États pour le formulaire d'inscription
   const [registerData, setRegisterData] = useState({
     first_name: '',

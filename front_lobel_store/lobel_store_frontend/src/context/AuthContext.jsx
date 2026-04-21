@@ -56,6 +56,9 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       setIsAuthenticated(true);
 
+      // Redirection vers la page d'accueil après login réussi
+      navigate('/', { replace: true });
+
       return data;
     } catch (error) {
       console.log('Erreur dans AuthContext.login:', error);
@@ -78,6 +81,9 @@ export const AuthProvider = ({ children }) => {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
         setIsAuthenticated(true);
+
+        // Redirection vers la page d'accueil après register réussi
+        navigate('/', { replace: true });
       }
 
       return data;

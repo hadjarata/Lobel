@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { 
+  Home, 
+  ShoppingBag, 
+  User, 
+  ShoppingCart, 
+  LogOut 
+} from 'lucide-react';
+import NavItem from './NavItem';
 import './Navbar.css';
 
 const Navbar = () => {
-  const { isAuthenticated, user, logout } = useAuth();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, logout } = useAuth();
   const [cartCount, setCartCount] = useState(0);
-
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
 
   useEffect(() => {
     // Charger le compteur du panier depuis le localStorage
@@ -37,59 +40,50 @@ const Navbar = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
+        {/* Logo */}
         <div className="navbar-logo">
-          <Link to="/">Lobel Store</Link>
-        </div>
-        
-        <div className="navbar-menu-toggle" onClick={toggleMenu}>
-          <span className="bar"></span>
-          <span className="bar"></span>
-          <span className="bar"></span>
+          <Link to="/" className="logo-link">
+            <span className="logo-text">Lobel</span>
+            <span className="logo-accent">Store</span>
+          </Link>
         </div>
 
-        <ul className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
-          <li className="navbar-item">
-            <Link to="/" className="navbar-link" onClick={() => setIsMenuOpen(false)}>
-              Accueil
-            </Link>
-          </li>
-          <li className="navbar-item">
-            <Link to="/shop" className="navbar-link" onClick={() => setIsMenuOpen(false)}>
-              Boutique
-            </Link>
-          </li>
-        </ul>
+        {/* Navigation principale - une seule barre */}
+        <div className="navbar-nav">
+          {/* Navigation de base (toujours visible) */}
+          <NavItem to="/" icon={Home}>Accueil</NavItem>
+          <NavItem to="/shop" icon={ShoppingBag}>Boutique</NavItem>
 
-        <div className="navbar-actions">
+          {/* Navigation conditionnelle selon auth */}
           {isAuthenticated ? (
             <>
-              <Link to="/profile" className="profile-btn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span>Profil</span>
-              </Link>
-
-              <Link to="/cart" className="cart-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                </svg>
-                {cartCount > 0 && (
-                  <span className="cart-count">{cartCount}</span>
-                )}
-              </Link>
-
-              <button onClick={logout} className="logout-btn">
-                Déconnexion
-              </button>
+              <NavItem to="/cart" icon={ShoppingCart} badge={cartCount > 0 ? cartCount : null}>
+                Panier
+              </NavItem>
+              <NavItem to="/profile" icon={User}>Profil</NavItem>
             </>
+          ) : null}
+        </div>
+
+        {/* Boutons à droite */}
+        <div className="navbar-right">
+          {isAuthenticated ? (
+            <div className="navbar-logout">
+              <NavItem 
+                icon={LogOut} 
+                onClick={logout}
+                isButton={true}
+                className="logout-item"
+              >
+                Déconnexion
+              </NavItem>
+            </div>
           ) : (
-            <Link to="/login" className="login-btn">
-              Connexion
-            </Link>
+            <div className="navbar-login">
+              <NavItem to="/login" icon={User} className="login-item">
+                Connexion
+              </NavItem>
+            </div>
           )}
         </div>
       </div>

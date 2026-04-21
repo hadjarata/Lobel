@@ -11,19 +11,6 @@ const Login = () => {
   const { login, loading, user } = useAuth();
   console.log('Login.jsx - useAuth hook:', { login: !!login, loading, user: !!user });
 
-  // Afficher le message de redirection et gérer la redirection automatique
-  useEffect(() => {
-    // Afficher le message s'il vient d'une redirection
-    if (location.state?.message) {
-      setInfoMessage(location.state.message);
-    }
-
-    // Redirection automatique si déjà connecté
-    if (user) {
-      const from = location.state?.from?.pathname || '/shop';
-      navigate(from, { replace: true });
-    }
-  }, [user, navigate, location]);
   
   // États pour le formulaire de login
   const [loginData, setLoginData] = useState({
