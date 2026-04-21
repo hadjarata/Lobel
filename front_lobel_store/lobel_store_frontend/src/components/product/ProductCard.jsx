@@ -46,7 +46,11 @@ const ProductCard = ({
         </div>
         
         <div className="product-info">
-          {category && <span className="product-category">{category}</span>}
+          {category && (
+            <span className="product-category">
+              {typeof category === 'object' ? category.name : category}
+            </span>
+          )}
           <h3 className="product-name">{name}</h3>
           <div className="product-price-row">
             <span className="product-price">{price.toLocaleString()} FCFA</span>
