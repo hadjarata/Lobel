@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
+from django.db.models import Q
 
 # Create your views here.
 # products/views.py
@@ -52,6 +53,6 @@ class CollectionViewSet(viewsets.ModelViewSet):
         return Collection.objects.filter(
             is_active=True
         ).filter(
-            models.Q(start_date__lte=today) | models.Q(start_date__isnull=True),
-            models.Q(end_date__gte=today) | models.Q(end_date__isnull=True),
+            Q(start_date__lte=today) | Q(start_date__isnull=True),
+            Q(end_date__gte=today) | Q(end_date__isnull=True),
         )

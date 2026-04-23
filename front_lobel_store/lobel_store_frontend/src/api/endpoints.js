@@ -25,9 +25,9 @@ export const ENDPOINTS = {
   CATEGORY_DETAIL: (id) => `/api/products/categories/${id}/`,
 
   // Mapping collections
-  COLLECTIONS: "/api/products/categories/",
-  COLLECTION_DETAIL: (id) => `/api/products/categories/${id}/`,
-  CATEGORY_PRODUCTS: (id) => `/api/products/products/?category=${id}`,
+  COLLECTIONS: "/api/products/collections/",
+  COLLECTION_DETAIL: (slug) => `/api/products/collections/${slug}/`,
+  COLLECTION_PRODUCTS: (slug) => `/api/products/products/?collection=${slug}`,
 
   // =========================
   // ORDERS

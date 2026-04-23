@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getProducts } from '../../api/products';
+import { getProducts, getCollections, getCategories } from '../../api/products';
 import ProductGrid from '../../components/product/ProductGrid';
 import FilterSidebar from '../../components/ui/FilterSidebar';
 import Pagination from '../../components/ui/Pagination';
@@ -9,6 +9,11 @@ import './Shop.css';
 const Shop = () => {
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
+  const [collections, setCollections] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [colors, setColors] = useState([]);
+  const [sizes, setSizes] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,55 +35,117 @@ const Shop = () => {
   }, []);
 
   useEffect(() => {
-    fetchProducts();
-  }, [currentPage, filters]);
+    fetchInitialData();
+  }, []);
 
-  const fetchProducts = async () => {
+  useEffect(() => {
+    applyFilters();
+  }, [filters, allProducts]);
+
+  const fetchInitialData = async () => {
     try {
       setLoading(true);
-      setError(null);
+      const [productsResponse, collectionsResponse, categoriesResponse] = await Promise.all([
+        getProducts(),
+        getCollections(),
+        getCategories()
+      ]);
+
+      const productsData = productsResponse.data || productsResponse;
+      setAllProducts(productsData);
       
-      const response = await getProducts();
-      let filteredProducts = response.data || response;
-
-      // Apply filters
-      if (filters.category) {
-        filteredProducts = filteredProducts.filter(product => 
-          product.category === filters.category
-        );
-      }
-
-      if (filters.price) {
-        filteredProducts = filteredProducts.filter(product => 
-          product.price >= filters.price.min && product.price <= filters.price.max
-        );
-      }
-
-      if (filters.size && filters.size.length > 0) {
-        filteredProducts = filteredProducts.filter(product => 
-          product.sizes && product.sizes.some(size => filters.size.includes(size))
-        );
-      }
-
-      if (filters.color && filters.color.length > 0) {
-        filteredProducts = filteredProducts.filter(product => 
-          product.colors && product.colors.some(color => filters.color.includes(color))
-        );
-      }
-
-      // Pagination
-      const startIndex = (currentPage - 1) * productsPerPage;
-      const endIndex = startIndex + productsPerPage;
-      const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+      setCollections(collectionsResponse.data || collectionsResponse);
+      setCategories(categoriesResponse.data || categoriesResponse);
       
-      setProducts(paginatedProducts);
-      setTotalPages(Math.ceil(filteredProducts.length / productsPerPage));
-    } catch (err) {
-      setError('Erreur lors du chargement des produits');
-      console.error('Error fetching products:', err);
+      // Extraire couleurs et tailles des produits
+      extractColorsAndSizes(productsData);
+      
+      applyFilters();
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+      setError('Erreur lors du chargement des données');
     } finally {
       setLoading(false);
     }
+  };
+
+  const extractColorsAndSizes = (products) => {
+    const uniqueColors = new Set();
+    const uniqueSizes = new Set();
+    
+    products.forEach(product => {
+      if (product.variants) {
+        product.variants.forEach(variant => {
+          if (variant.color) {
+            uniqueColors.add(variant.color.name || variant.color);
+          }
+          if (variant.size) {
+            uniqueSizes.add(variant.size.name || variant.size);
+          }
+        });
+      }
+    });
+    
+    setColors(Array.from(uniqueColors));
+    setSizes(Array.from(uniqueSizes));
+  };
+
+  const applyFilters = () => {
+    let filteredProducts = [...allProducts];
+
+    // Filtre par collection
+    if (filters.collection) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.collections && product.collections.some(c => c.slug === filters.collection)
+      );
+    }
+
+    // Filtre par catégorie
+    if (filters.category) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.category?.id === filters.category || product.category === filters.category
+      );
+    }
+
+    // Filtre par couleur
+    if (filters.color && filters.color.length > 0) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.variants && product.variants.some(variant => 
+          filters.color.some(color => 
+            (variant.color?.name === color) || (variant.color === color)
+          )
+        )
+      );
+    }
+
+    // Filtre par taille
+    if (filters.size && filters.size.length > 0) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.variants && product.variants.some(variant => 
+          filters.size.some(size => 
+            (variant.size?.name === size) || (variant.size === size)
+          )
+        )
+      );
+    }
+
+    // Filtre par prix
+    if (filters.price) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.price >= filters.price.min && product.price <= filters.price.max
+      );
+    }
+
+    // Filtre nouveautés (30 derniers jours)
+    if (filters.isNew) {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      filteredProducts = filteredProducts.filter(product => 
+        new Date(product.date_created) >= thirtyDaysAgo
+      );
+    }
+
+    setProducts(filteredProducts);
   };
 
   const handleFilterChange = (filterType, value) => {
@@ -89,7 +156,9 @@ const Shop = () => {
       setFilters(prev => {
         const newFilters = { ...prev };
         
-        if (filterType === 'category') {
+        if (filterType === 'collection') {
+          newFilters.collection = prev.collection === value ? null : value;
+        } else if (filterType === 'category') {
           newFilters.category = prev.category === value ? null : value;
         } else if (filterType === 'price') {
           newFilters.price = prev.price?.label === value.label ? null : value;
@@ -113,6 +182,8 @@ const Shop = () => {
           } else {
             newFilters.color = [...currentColors, value];
           }
+        } else if (filterType === 'isNew') {
+          newFilters.isNew = prev.isNew ? false : true;
         }
         
         return newFilters;
@@ -186,6 +257,10 @@ const Shop = () => {
               filters={filters}
               onFilterChange={handleFilterChange}
               isMobile={false}
+              collections={collections}
+              categories={categories}
+              colors={colors}
+              sizes={sizes}
             />
           </div>
         )}
@@ -194,7 +269,7 @@ const Shop = () => {
           {error && (
             <div className="shop-error">
               <p>{error}</p>
-              <button onClick={fetchProducts} className="retry-btn">
+              <button onClick={fetchInitialData} className="retry-btn">
                 Réessayer
               </button>
             </div>
@@ -224,6 +299,10 @@ const Shop = () => {
           isMobile={true}
           isOpen={isMobileFilterOpen}
           onClose={() => setIsMobileFilterOpen(false)}
+          collections={collections}
+          categories={categories}
+          colors={colors}
+          sizes={sizes}
         />
       )}
     </div>

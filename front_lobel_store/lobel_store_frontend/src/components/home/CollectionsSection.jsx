@@ -25,9 +25,7 @@ const CollectionsSection = () => {
               
               // Filtrer les produits de cette collection
               const collectionProducts = allProducts.filter(product => 
-                product.category?.id === collection.id || 
-                product.category === collection.id ||
-                product.category?.name?.toLowerCase() === collection.name?.toLowerCase()
+                product.collections && product.collections.some(c => c.id === collection.id)
               ).slice(0, 6); // Limiter à 6 produits pour l'aperçu
               
               return {
@@ -90,7 +88,7 @@ const CollectionsSection = () => {
                 subtitle={collection.description || collection.subtitle}
                 image={collection.image}
                 products={collection.products || []}
-                link={`/shop?category=${collection.id}`}
+                link={`/shop?collection=${collection.slug}`}
               />
             ))}
           </div>

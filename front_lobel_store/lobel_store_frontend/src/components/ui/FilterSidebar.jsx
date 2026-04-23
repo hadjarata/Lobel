@@ -6,38 +6,26 @@ const FilterSidebar = ({
   onFilterChange = () => {},
   isMobile = false,
   isOpen = false,
-  onClose = () => {}
+  onClose = () => {},
+  collections = [],
+  categories = [],
+  colors = [],
+  sizes = []
 }) => {
   const [expandedSections, setExpandedSections] = useState({
+    collection: true,
     category: true,
     price: true,
     size: true,
-    color: true
+    color: true,
+    new: true
   });
-
-  const categories = [
-    'Robes',
-    'Tops',
-    'Pantalons', 
-    'Jupes',
-    'Accessoires'
-  ];
 
   const priceRanges = [
     { label: 'Moins de 10 000 FCFA', min: 0, max: 10000 },
     { label: '10 000 - 20 000 FCFA', min: 10000, max: 20000 },
     { label: '20 000 - 30 000 FCFA', min: 20000, max: 30000 },
     { label: 'Plus de 30 000 FCFA', min: 30000, max: Infinity }
-  ];
-
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const colors = [
-    { name: 'Noir', value: '#000000' },
-    { name: 'Blanc', value: '#FFFFFF' },
-    { name: 'Rose', value: '#FFB6C1' },
-    { name: 'Beige', value: '#F5F5DC' },
-    { name: 'Bleu', value: '#4A90E2' },
-    { name: 'Rouge', value: '#FF6B6B' }
   ];
 
   const toggleSection = (section) => {
@@ -47,12 +35,12 @@ const FilterSidebar = ({
     }));
   };
 
-  const handleCategoryChange = (category) => {
-    onFilterChange('category', category);
+  const handleCollectionChange = (collectionSlug) => {
+    onFilterChange('collection', collectionSlug);
   };
 
-  const handlePriceChange = (range) => {
-    onFilterChange('price', range);
+  const handleCategoryChange = (categoryId) => {
+    onFilterChange('category', categoryId);
   };
 
   const handleSizeChange = (size) => {
@@ -61,6 +49,14 @@ const FilterSidebar = ({
 
   const handleColorChange = (color) => {
     onFilterChange('color', color);
+  };
+
+  const handleNewChange = () => {
+    onFilterChange('isNew', true);
+  };
+
+  const handlePriceChange = (range) => {
+    onFilterChange('price', range);
   };
 
   const clearFilters = () => {
@@ -105,6 +101,41 @@ const FilterSidebar = ({
           <div className="filter-section">
             <div 
               className="filter-section-header"
+              onClick={() => toggleSection('collection')}
+            >
+              <h4 className="filter-section-title">Collections</h4>
+              <svg 
+                className={`chevron ${expandedSections.collection ? 'open' : ''}`}
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <polyline points="6,9 12,15 18,9"></polyline>
+              </svg>
+            </div>
+            {expandedSections.collection && (
+              <div className="filter-section-content">
+                {collections.map((collection) => (
+                  <label key={collection.slug} className="filter-item">
+                    <input
+                      type="checkbox"
+                      checked={filters.collection === collection.slug}
+                      onChange={() => handleCollectionChange(collection.slug)}
+                    />
+                    <span className="filter-label">{collection.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Catégories */}
+          <div className="filter-section">
+            <div 
+              className="filter-section-header"
               onClick={() => toggleSection('category')}
             >
               <h4 className="filter-section-title">Catégories</h4>
@@ -123,13 +154,13 @@ const FilterSidebar = ({
             {expandedSections.category && (
               <div className="filter-section-content">
                 {categories.map((category) => (
-                  <label key={category} className="filter-item">
+                  <label key={category.id} className="filter-item">
                     <input
                       type="checkbox"
-                      checked={filters.category === category}
-                      onChange={() => handleCategoryChange(category)}
+                      checked={filters.category === category.id}
+                      onChange={() => handleCategoryChange(category.id)}
                     />
-                    <span className="filter-label">{category}</span>
+                    <span className="filter-label">{category.name}</span>
                   </label>
                 ))}
               </div>
@@ -232,20 +263,49 @@ const FilterSidebar = ({
               <div className="filter-section-content">
                 <div className="color-grid">
                   {colors.map((color) => (
-                    <label key={color.value} className="color-item">
+                    <label key={color} className="color-item">
                       <input
                         type="checkbox"
-                        checked={filters.color?.includes(color.value)}
-                        onChange={() => handleColorChange(color.value)}
+                        checked={filters.color?.includes(color)}
+                        onChange={() => handleColorChange(color)}
                       />
-                      <span 
-                        className="color-swatch"
-                        style={{ backgroundColor: color.value }}
-                        title={color.name}
-                      ></span>
+                      <span className="color-label">{color}</span>
                     </label>
                   ))}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Nouveautés */}
+          <div className="filter-section">
+            <div 
+              className="filter-section-header"
+              onClick={() => toggleSection('new')}
+            >
+              <h4 className="filter-section-title">Nouveautés</h4>
+              <svg 
+                className={`chevron ${expandedSections.new ? 'open' : ''}`}
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <polyline points="6,9 12,15 18,9"></polyline>
+              </svg>
+            </div>
+            {expandedSections.new && (
+              <div className="filter-section-content">
+                <label className="filter-item">
+                  <input
+                    type="checkbox"
+                    checked={filters.isNew || false}
+                    onChange={handleNewChange}
+                  />
+                  <span className="filter-label">Derniers 30 jours</span>
+                </label>
               </div>
             )}
           </div>

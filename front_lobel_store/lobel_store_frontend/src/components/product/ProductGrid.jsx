@@ -55,7 +55,7 @@ const ProductGrid = ({
           name={product.name}
           price={product.price}
           image={product.image}
-          category={product.category}
+          collections={product.collections}
           badge={product.badge}
           onClick={() => onProductClick && onProductClick(product)}
         />
