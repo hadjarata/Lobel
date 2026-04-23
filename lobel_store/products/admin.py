@@ -1,14 +1,16 @@
 from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
-
+from django.utils.html import format_html
 from .models import (
     Category,
+    Collection,
     Product,
     ProductMedia,
+    ProductVariant,
     Color,
-    Size,
-    ProductVariant
+    Size
 )
+
 
 # =========================
 # MEDIA INLINE
@@ -58,6 +60,41 @@ class SizeAdmin(admin.ModelAdmin):
 
 
 # =========================
+# COLLECTION PRODUCT INLINE
+# =========================
+class CollectionProductInline(admin.TabularInline):
+    model = Product.collections.through
+    extra = 1
+    verbose_name = "Produit"
+    verbose_name_plural = "Produits dans la collection"
+
+# =========================
+# COLLECTION ADMIN
+# =========================
+@admin.register(Collection)
+class CollectionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'product_count', 'add_product_button')
+    search_fields = ('name',)
+    list_filter = ('is_active',)
+    ordering = ('-created_at',)
+    
+    inlines = [CollectionProductInline]
+    exclude = ('products',)  # Exclure le champ ManyToMany direct car on utilise l'inline
+
+    def product_count(self, obj):
+        """Affiche le nombre de produits dans cette collection"""
+        count = obj.products.count()
+        return f"{count} produit{'s' if count != 1 else ''}"
+    product_count.short_description = "Produits"
+
+    def add_product_button(self, obj):
+        """Bouton pour ajouter un produit à cette collection"""
+        url = f'/admin/products/product/add/?collection={obj.id}'
+        return format_html('<a class="addlink" href="{}">Ajouter un produit</a>', url)
+    add_product_button.short_description = "Actions"
+    add_product_button.allow_tags = True
+
+# =========================
 # PRODUCT ADMIN (ULTRA CLEAN)
 # =========================
 @admin.register(Product)
@@ -77,12 +114,12 @@ class ProductAdmin(admin.ModelAdmin):
 
     inlines = [
         ProductMediaInline,
-        ProductVariantInline   # 🔥 AJOUT IMPORTANT
+        ProductVariantInline
     ]
 
     fieldsets = (
         ('Informations générales', {
-            'fields': ('name', 'category', 'description')
+            'fields': ('name', 'category', 'description')  # 🔥 AJOUT
         }),
         ('Prix & ventes', {
             'fields': ('price', 'sales_count')
@@ -93,9 +130,18 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
 
-    # =========================
-    # VALIDATION SIMPLE
-    # =========================
+    def get_changeform_initial_data(self, request):
+        """Pré-remplir le champ collections si un paramètre collection est passé"""
+        initial = super().get_changeform_initial_data(request)
+        collection_id = request.GET.get('collection')
+        if collection_id:
+            try:
+                collection_id = int(collection_id)
+                initial['collections'] = [collection_id]
+            except (ValueError, TypeError):
+                pass
+        return initial
+
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 

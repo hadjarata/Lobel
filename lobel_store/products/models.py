@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.text import slugify
 
 
 # =========================
@@ -30,6 +31,11 @@ class Product(models.Model):
 
     # best sellers logic
     sales_count = models.PositiveIntegerField(default=0)
+    collections = models.ManyToManyField(
+    'Collection',
+    related_name='products',
+    blank=True
+)
 
     class Meta:
         ordering = ['-date_created']
@@ -119,3 +125,38 @@ class ProductVariant(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.color} - {self.size}"
+    
+    # Collections
+
+class Collection(models.Model):
+    name = models.CharField(max_length=255)
+    slug = models.SlugField(unique=True, blank=True)
+    description = models.TextField(blank=True)
+
+    image = models.ImageField(upload_to='collections/images/', blank=True, null=True)
+    video = models.FileField(upload_to='collections/videos/', blank=True, null=True)
+
+    is_active = models.BooleanField(default=True)
+
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base_slug = slugify(self.name)
+            slug = base_slug
+            counter = 1
+
+            while Collection.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            self.slug = slug
+
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name

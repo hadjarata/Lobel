@@ -5,7 +5,8 @@ from .models import (
     ProductMedia,
     ProductVariant,
     Color,
-    Size
+    Size,
+    Collection
 )
 
 
@@ -81,14 +82,15 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 # =========================
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer()
+    collections = serializers.PrimaryKeyRelatedField(
+        queryset=Collection.objects.all(),
+        many=True,
+        required=False
+    )
 
-    # médias multiples
     media_files = ProductMediaSerializer(many=True, read_only=True)
-
-    # variantes produit (couleur + taille + stock)
     variants = ProductVariantSerializer(many=True, read_only=True)
 
-    # compatibilité frontend (ancien système)
     image = serializers.SerializerMethodField()
     video = serializers.SerializerMethodField()
 
@@ -103,11 +105,11 @@ class ProductSerializer(serializers.ModelSerializer):
             'sales_count',
             'date_created',
 
-            # nouveau système
+            'collections',  # 🔥 AJOUT IMPORTANT
+
             'media_files',
             'variants',
 
-            # compatibilité ancienne UI
             'image',
             'video'
         ]
@@ -126,4 +128,50 @@ class ProductSerializer(serializers.ModelSerializer):
         if first_video:
             request = self.context.get('request')
             return request.build_absolute_uri(first_video.file.url) if request else first_video.file.url
+        return None
+
+class CollectionSerializer(serializers.ModelSerializer):
+    image_url = serializers.SerializerMethodField()
+    video_url = serializers.SerializerMethodField()
+    products = serializers.PrimaryKeyRelatedField(
+        many=True,
+        read_only=True
+    )
+
+    class Meta:
+        model = Collection
+        fields = [
+            'id',
+            'name',
+            'slug',
+            'description',
+            'image',
+            'image_url',
+            'video',
+            'video_url',
+            'is_active',
+            'start_date',
+            'end_date',
+            'products',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
+
+    def get_image_url(self, obj):
+        """Retourne l'URL complète de l'image"""
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
+    def get_video_url(self, obj):
+        """Retourne l'URL complète de la vidéo"""
+        if obj.video:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.video.url)
+            return obj.video.url
         return None
