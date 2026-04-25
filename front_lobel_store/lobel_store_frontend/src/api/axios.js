@@ -14,6 +14,10 @@ api.interceptors.request.use(
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("Token envoyé:", token);
+      console.log("Headers Authorization:", config.headers.Authorization);
+    } else {
+      console.log("Aucun token trouvé dans localStorage");
     }
 
     return config;

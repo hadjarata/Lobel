@@ -128,6 +128,7 @@ class ProductVariant(models.Model):
     
     # Collections
 
+
 class Collection(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, blank=True)

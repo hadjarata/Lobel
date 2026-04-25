@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById, getProducts } from '../../api/products';
+import { addOrderItem, fetchCart } from '../../api/cart';
 import { useAuth } from '../../context/AuthContext';
 import ProductGallery from '../../components/product/ProductGallery';
 import ColorSelector from '../../components/product/ColorSelector';
@@ -238,14 +239,25 @@ const Product = () => {
         size_name: selectedSize.name
       };
 
-      // TODO: Appeler l'API du panier quand elle sera prête
-      console.log('Adding to cart:', cartItem);
-      
-      // Simulation d'ajout au panier
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Afficher un message de succès
-      alert('Produit ajouté au panier avec succès!');
+      try {
+        console.log('Sending to API:', cartItem);
+        
+        const response = await addOrderItem({
+          product_id: cartItem.product_id,
+          quantity: cartItem.quantity,
+        });
+        
+        console.log('API response:', response);
+        await fetchCart();
+        
+        alert('Produit ajouté au panier avec succès');
+        
+      } catch (error) {
+        console.error('Erreur ajout panier:', error);
+        console.error('Response data:', error.response?.data);
+        console.error('Response status:', error.response?.status);
+        alert("Erreur lors de l'ajout au panier");
+      }
       
     } catch (err) {
       console.error('Error adding to cart:', err);
