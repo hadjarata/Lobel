@@ -1,5 +1,5 @@
+from django import forms
 from django.contrib import admin, messages
-from django.core.exceptions import ValidationError
 from django.utils.html import format_html
 from .models import (
     Category,
@@ -68,18 +68,56 @@ class CollectionProductInline(admin.TabularInline):
     verbose_name = "Produit"
     verbose_name_plural = "Produits dans la collection"
 
+
+class CollectionAdminForm(forms.ModelForm):
+    class Meta:
+        model = Collection
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        cover_type = cleaned_data.get('cover_type') or Collection.COVER_TYPE_IMAGE
+        image = cleaned_data.get('image')
+        video = cleaned_data.get('video')
+
+        if cover_type == Collection.COVER_TYPE_IMAGE:
+            cleaned_data['video'] = None
+
+            if not image:
+                self.add_error('image', "Upload an image when cover type is set to image.")
+
+        if cover_type == Collection.COVER_TYPE_VIDEO:
+            cleaned_data['image'] = None
+
+            if not video:
+                self.add_error('video', "Upload a video when cover type is set to video.")
+
+        return cleaned_data
+
 # =========================
 # COLLECTION ADMIN
 # =========================
 @admin.register(Collection)
 class CollectionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'is_active', 'product_count', 'add_product_button')
+    form = CollectionAdminForm
+    list_display = ('name', 'cover_type', 'is_active', 'product_count', 'add_product_button')
     search_fields = ('name',)
     list_filter = ('is_active',)
     ordering = ('-created_at',)
     
     inlines = [CollectionProductInline]
     exclude = ('products',)  # Exclure le champ ManyToMany direct car on utilise l'inline
+    fields = (
+        'name',
+        'slug',
+        'description',
+        'cover_type',
+        'image',
+        'video',
+        'is_active',
+        'start_date',
+        'end_date',
+    )
 
     def product_count(self, obj):
         """Affiche le nombre de produits dans cette collection"""

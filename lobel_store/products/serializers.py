@@ -145,6 +145,7 @@ class CollectionSerializer(serializers.ModelSerializer):
             'name',
             'slug',
             'description',
+            'cover_type',
             'image',
             'image_url',
             'video',

@@ -81,16 +81,21 @@ const CollectionsSection = () => {
           </div>
         ) : (
           <div className="collections-grid">
-            {collections.map((collection) => (
-              <CollectionCard
-                key={collection.id}
-                title={collection.name || collection.title}
-                subtitle={collection.description || collection.subtitle}
-                image={collection.image}
-                products={collection.products || []}
-                link={`/shop?collection=${collection.slug}`}
-              />
-            ))}
+            {collections.map((collection) => {
+              console.log('Collection image:', collection.image, collection.image_url);
+
+              return (
+                <CollectionCard
+                  key={collection.id}
+                  title={collection.name || collection.title}
+                  subtitle={collection.description || collection.subtitle}
+                  image={collection.image_url || collection.image}
+                  video={collection.video_url || collection.video}
+                  products={collection.products || []}
+                  link={`/shop?collection=${collection.slug}`}
+                />
+              );
+            })}
           </div>
         )}
       </div>

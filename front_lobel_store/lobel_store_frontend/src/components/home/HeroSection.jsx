@@ -11,12 +11,13 @@ const HeroSection = () => {
       </div>
       <div className="hero-content">
         <div className="hero-text">
+          <span className="hero-eyebrow">Maison Lobel</span>
           <h1 className="hero-title">
-            Découvrez les nouvelles collections
+            Decouvrez une elegance douce, moderne et resolument feminine
           </h1>
           <p className="hero-subtitle">
-            Élégance et style contemporain pour sublimer votre quotidien. 
-            Explorez nos pièces uniques et tendances.
+            Des silhouettes soigneusement choisies, des textures delicates et
+            un vestiaire pense pour accompagner chaque instant avec grace.
           </p>
           <Link to="/shop">
             <Button variant="primary" size="large" className="hero-cta">

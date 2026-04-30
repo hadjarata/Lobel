@@ -1,24 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import ProductCard from '../product/ProductCard';
 import { getNewProducts } from '../../api/products';
 import './NewProductsSection.css';
+
+const getColumnCount = (width) => {
+  if (width >= 1024) return 4;
+  if (width >= 768) return 3;
+  return 2;
+};
 
 const NewProductsSection = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-  const scrollContainerRef = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const [columns, setColumns] = useState(getColumnCount(window.innerWidth));
 
   useEffect(() => {
     const fetchNewProducts = async () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getNewProducts(); // Sans limite pour récupérer tous les nouveautés
-        const productsArray = Array.isArray(data) ? data : [];
+        const data = await getNewProducts();
+        const productsArray = Array.isArray(data) ? data : data?.results || [];
         setProducts(productsArray);
       } catch (err) {
         setError('Impossible de charger les nouveautés');
@@ -32,41 +36,13 @@ const NewProductsSection = () => {
   }, []);
 
   useEffect(() => {
-    const checkScrollButtons = () => {
-      const container = scrollContainerRef.current;
-      if (!container) return;
+    const handleResize = () => setColumns(getColumnCount(window.innerWidth));
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-      const { scrollLeft, scrollWidth, clientWidth } = container;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
-    };
-
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.addEventListener('scroll', checkScrollButtons);
-      checkScrollButtons(); // Vérifier au montage
-    }
-
-    return () => {
-      if (container) {
-        container.removeEventListener('scroll', checkScrollButtons);
-      }
-    };
-  }, [products]);
-
-  const scrollLeft = () => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.scrollBy({ left: -300, behavior: 'smooth' });
-    }
-  };
-
-  const scrollRight = () => {
-    const container = scrollContainerRef.current;
-    if (container) {
-      container.scrollBy({ left: 300, behavior: 'smooth' });
-    }
-  };
+  const visibleProducts = expanded ? products : products.slice(0, columns);
+  const showToggle = products.length > columns;
 
   return (
     <section className="new-products-section">
@@ -77,7 +53,7 @@ const NewProductsSection = () => {
             Découvrez nos dernières arrivées et tendances du moment
           </p>
         </div>
-        
+
         {loading ? (
           <div className="new-products-loading">
             <div className="loading-spinner"></div>
@@ -96,63 +72,41 @@ const NewProductsSection = () => {
               <div className="empty-icon">?</div>
               <h3 className="empty-title">Aucune nouveauté disponible pour le moment</h3>
               <p className="empty-subtitle">Revenez bientôt pour découvrir nos dernières collections</p>
-              <Link to="/shop" className="view-shop-btn">
+              <button className="view-shop-btn" type="button" onClick={() => window.location.assign('/shop')}>
                 Voir la boutique
-              </Link>
+              </button>
             </div>
           </div>
         ) : (
           <>
-            <div className="new-products-carousel-container">
-              <button 
-                className={`carousel-arrow carousel-arrow-left ${!canScrollLeft ? 'disabled' : ''}`}
-                onClick={scrollLeft}
-                disabled={!canScrollLeft}
-                aria-label="Défiler à gauche"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
-              </button>
+            <div className="new-arrivals-grid">
+              {visibleProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  price={product.price}
+                  image={product.image}
+                  video={product.video}
+                />
+              ))}
+            </div>
 
-              <div className="new-products-scroll-container">
-                <div 
-                  ref={scrollContainerRef}
-                  className={`new-products-scroll ${products.length <= 3 ? 'few-products' : ''}`}
+            {showToggle && (
+              <div className="new-products-cta">
+                <button
+                  type="button"
+                  className="view-all-new-btn"
+                  onClick={() => setExpanded((prev) => !prev)}
+                  aria-expanded={expanded}
                 >
-                  {products.map((product) => (
-                    <div key={product.id} className="product-card-wrapper">
-                      <ProductCard
-                        id={product.id}
-                        name={product.name}
-                        price={product.price}
-                        image={product.image}
-                        video={product.video}
-                        category={product.category?.name || product.category}
-                        badge={product.badge}
-                      />
-                    </div>
-                  ))}
-                </div>
+                  {expanded ? 'Réduire les nouveautés' : 'Afficher tous les nouveaux produits'}
+                  <svg className="cta-arrow" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
               </div>
-
-              <button 
-                className={`carousel-arrow carousel-arrow-right ${!canScrollRight ? 'disabled' : ''}`}
-                onClick={scrollRight}
-                disabled={!canScrollRight}
-                aria-label="Défiler à droite"
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-              </button>
-            </div>
-            
-            <div className="new-products-cta">
-              <Link to="/shop?filter=new" className="view-all-btn">
-                Voir toutes les nouveautés
-              </Link>
-            </div>
+            )}
           </>
         )}
       </div>
