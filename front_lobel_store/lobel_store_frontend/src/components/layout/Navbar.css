@@ -25,15 +25,14 @@
   left: 24px;
   top: 50%;
   transform: translateY(-50%);
+  padding: 0 8px;
 }
 
 .navbar-logo .logo-link {
   display: flex;
   align-items: center;
+  justify-content: center;
   text-decoration: none;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-weight: 700;
-  font-size: 28px;
   transition: transform 0.2s ease;
 }
 
@@ -41,13 +40,11 @@
   transform: scale(1.02);
 }
 
-.logo-text {
-  color: #2c3e50;
-}
-
-.logo-accent {
-  color: #e74c3c;
-  margin-left: 2px;
+.logo-image {
+  height: 54px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
 }
 
 /* Navigation principale - une seule barre */
@@ -80,36 +77,35 @@
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  color: #6c757d;
+  color: #666;
   text-decoration: none;
   font-weight: 500;
   font-size: 15px;
-  border-radius: 12px;
+  border-radius: 4px;
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   position: relative;
 }
 
 .nav-item:hover {
-  color: #2c3e50;
-  background: #f8f9fa;
-  border-color: #e9ecef;
-  transform: translateY(-1px);
+  color: black;
+  background: #f5f5f5;
+  border-color: #e0e0e0;
 }
 
 .nav-item.nav-item-link.active {
-  color: #e74c3c;
-  background: #fff5f5;
-  border-color: #e74c3c;
+  color: black;
+  background: #e0e0e0;
+  border-color: #e0e0e0;
 }
 
 /* NavItem spécifiques */
 .nav-item.logout-item:hover {
-  color: #e74c3c;
-  border-color: #e74c3c;
-  background: #fff5f5;
+  color: #d32f2f;
+  border-color: #d32f2f;
+  background: #ffebee;
 }
 
 /* Badge pour panier */
@@ -117,7 +113,7 @@
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #e74c3c;
+  background: black;
   color: white;
   font-size: 11px;
   font-weight: 600;

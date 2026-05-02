@@ -43,8 +43,7 @@ const Navbar = () => {
         {/* Logo */}
         <div className="navbar-logo">
           <Link to="/" className="logo-link">
-            <span className="logo-text">Lobel</span>
-            <span className="logo-accent">Store</span>
+            <img src="/logo.jpg" alt="Lobel Store" className="logo-image" />
           </Link>
         </div>
 

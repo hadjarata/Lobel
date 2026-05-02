@@ -26,7 +26,7 @@ export const login = async (credentials) => {
       console.log('Message erreur:', message);
 
       if (message === "No active account found with the given credentials") {
-        throw new Error("Email ou mot de passe incorrect");
+        throw new Error("Votre compte n'est pas activé. Vérifiez votre email pour activer votre compte.");
       }
 
       throw new Error(message || "Erreur de connexion");
@@ -41,18 +41,11 @@ export const login = async (credentials) => {
 // =========================
 export const register = async (userData) => {
   try {
-    // Générer un username unique à partir de l'email pour Django
-    const username = userData.email.split('@')[0] + '_' + Date.now();
-    
     const registerPayload = {
-      ...userData,
-      username: username, // Ajouter username généré pour Django
-      user: {
-        username: username, // Username pour le User Django
-        first_name: userData.first_name,
-        last_name: userData.last_name,
-        email: userData.email
-      }
+      email: userData.email,
+      password: userData.password,
+      first_name: userData.first_name,
+      last_name: userData.last_name,
     };
     
     const response = await api.post(ENDPOINTS.REGISTER, registerPayload);
@@ -110,6 +103,42 @@ export const changePassword = async (passwordData) => {
   return response.data;
 };
 
+export const requestPasswordReset = async (payload) => {
+  const response = await api.post(ENDPOINTS.PASSWORD_RESET_REQUEST, payload);
+  return response.data;
+};
+
+export const resetPassword = async (payload) => {
+  const response = await api.post(ENDPOINTS.PASSWORD_RESET_CONFIRM, payload);
+  return response.data;
+};
+
+export const verifyEmail = async (payload) => {
+  const response = await api.post(ENDPOINTS.VERIFY_EMAIL, payload);
+  return response.data;
+};
+
+export const validateResetPassword = (passwordData) => {
+  const errors = {};
+
+  if (!passwordData.password) {
+    errors.password = "Le mot de passe est requis";
+  } else if (passwordData.password.length < 6) {
+    errors.password = "Le mot de passe doit contenir au moins 6 caractères";
+  }
+
+  if (!passwordData.confirm_password) {
+    errors.confirm_password = "La confirmation est requise";
+  } else if (passwordData.password !== passwordData.confirm_password) {
+    errors.confirm_password = "Les mots de passe ne correspondent pas";
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
 export const validateLogin = (credentials) => {
   const errors = {};
 
@@ -121,6 +150,21 @@ export const validateLogin = (credentials) => {
 
   if (!credentials.password) {
     errors.password = "Mot de passe requis";
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+export const validateEmailOnly = (email) => {
+  const errors = {};
+
+  if (!email) {
+    errors.email = "L'email est requis";
+  } else if (!/\S+@\S+\.\S+/.test(email)) {
+    errors.email = "Email invalide";
   }
 
   return {

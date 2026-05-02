@@ -8,7 +8,9 @@ const Footer = () => {
       <div className="footer-container">
         <div className="footer-content">
           <div className="footer-section">
-            <h3 className="footer-logo">Lobel Store</h3>
+            <div className="footer-logo">
+              <img src="/logo.jpg" alt="Lobel Store" className="footer-logo-image" />
+            </div>
             <p className="footer-description">
               Votre boutique de mode féminine dédiée à l'élégance et au style contemporain. 
               Découvrez nos collections uniques et tendances.

@@ -1,9 +1,9 @@
 .add-to-cart-btn {
-  background: #222;
+  background: black;
   color: white;
-  border: none;
+  border: 1px solid black;
   padding: 16px 24px;
-  border-radius: 8px;
+  border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -15,8 +15,8 @@
 }
 
 .add-to-cart-btn:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  background: white;
+  color: black;
 }
 
 .add-to-cart-btn:active:not(:disabled) {
@@ -30,25 +30,25 @@
 }
 
 .add-to-cart-btn.secondary {
-  background: transparent;
-  border: 1px solid #222;
-  color: #222;
+  background: white;
+  border: 1px solid black;
+  color: black;
 }
 
 .add-to-cart-btn.secondary:hover:not(:disabled) {
-  background: #222;
+  background: black;
   color: white;
 }
 
 .add-to-cart-btn.outline {
   background: transparent;
-  border: 1px solid #E0E0E0;
+  border: 1px solid #e0e0e0;
   color: #666;
 }
 
 .add-to-cart-btn.outline:hover:not(:disabled) {
-  border-color: #222;
-  color: #222;
+  border-color: black;
+  color: black;
 }
 
 .add-to-cart-btn.requires-auth {

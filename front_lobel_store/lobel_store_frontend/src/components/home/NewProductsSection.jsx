@@ -88,6 +88,7 @@ const NewProductsSection = () => {
                   price={product.price}
                   image={product.image}
                   video={product.video}
+                  salesCount={product.sales_count}
                 />
               ))}
             </div>

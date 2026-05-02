@@ -1,7 +1,7 @@
 .footer {
-  background: #F5F5DC;
-  border-top: 1px solid #FFB6C1;
-  margin-top: 40px;
+  background: #f9f9f9;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 60px;
 }
 
 .footer-container {
@@ -23,12 +23,12 @@
 }
 
 .footer-logo {
-  font-size: 24px;
-  font-weight: 600;
-  color: #DAA520;
   margin-bottom: 15px;
-  font-family: 'Georgia', serif;
-  letter-spacing: 1px;
+}
+
+.footer-logo-image {
+  height: 40px;
+  width: auto;
 }
 
 .footer-description {
@@ -47,30 +47,29 @@
   width: 40px;
   height: 40px;
   background: white;
+  border: 1px solid #e0e0e0;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #666;
   text-decoration: none;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
 }
 
 .social-link:hover {
-  background: #FFB6C1;
+  background: black;
   color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(255, 182, 193, 0.3);
+  border-color: black;
 }
 
 .footer-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: black;
   margin-bottom: 20px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.05em;
 }
 
 .footer-links {
@@ -86,11 +85,11 @@
   color: #666;
   text-decoration: none;
   font-size: 14px;
-  transition: color 0.3s ease;
+  transition: color 0.2s ease;
 }
 
 .footer-link:hover {
-  color: #FFB6C1;
+  color: black;
 }
 
 .footer-contact {

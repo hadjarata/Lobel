@@ -1,12 +1,12 @@
 .home {
   width: 100%;
   min-height: 100vh;
-  background: linear-gradient(180deg, #fcf8f5 0%, #fffdfb 28%, #fbf7f3 100%);
-  color: #251c1a;
-  --home-max-width: 1240px;
-  --home-gutter: clamp(18px, 3.2vw, 32px);
-  --section-space: clamp(44px, 6vw, 64px);
-  --section-space-tight: clamp(18px, 3vw, 28px);
+  background: white;
+  color: black;
+  --home-max-width: 1200px;
+  --home-gutter: 20px;
+  --section-space: 60px;
+  --section-space-tight: 30px;
 }
 
 html {
@@ -30,24 +30,23 @@ html {
 
 .home .section-header {
   text-align: center;
-  margin-bottom: clamp(22px, 4vw, 34px);
+  margin-bottom: 40px;
 }
 
 .home .section-title {
   margin: 0 0 12px;
-  font-family: 'Georgia', serif;
-  font-size: clamp(2rem, 3vw, 3rem);
+  font-size: 2.5rem;
   font-weight: 600;
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  color: #221917;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: black;
 }
 
 .home .section-subtitle {
-  max-width: 42rem;
+  max-width: 600px;
   margin: 0 auto;
-  font-size: clamp(0.98rem, 1.4vw, 1.08rem);
-  line-height: 1.7;
+  font-size: 1.1rem;
+  line-height: 1.6;
   color: rgba(56, 41, 37, 0.7);
 }
 

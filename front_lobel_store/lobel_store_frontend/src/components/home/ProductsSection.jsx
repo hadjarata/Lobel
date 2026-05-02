@@ -72,8 +72,8 @@ const ProductsSection = () => {
                 price={product.price}
                 image={product.image}
                 video={product.video}
-                category={product.category?.name || product.category}
                 badge={product.badge}
+                salesCount={product.sales_count}
               />
             ))}
           </div>

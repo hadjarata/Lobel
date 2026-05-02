@@ -1,12 +1,12 @@
 .collections-section {
-  padding: var(--section-space) 0;
-  background: transparent;
+  padding: 60px 0;
+  background: white;
 }
 
 .collections-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: clamp(18px, 2.4vw, 24px);
+  gap: 20px;
   align-items: stretch;
 }
 
@@ -18,10 +18,10 @@
 }
 
 .collections-loading .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(177, 149, 142, 0.18);
-  border-top: 4px solid #8d6b66;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid black;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 20px;
@@ -29,32 +29,32 @@
 
 .collections-loading p,
 .collections-empty p {
-  color: #6f5b56;
+  color: #666;
   font-size: 16px;
   margin: 0;
 }
 
 .collections-error p {
-  color: #bf5f68;
+  color: #d32f2f;
   font-size: 16px;
   margin: 0 0 20px;
 }
 
 .collections-error .retry-btn {
-  background: #221917;
-  color: #fff7f3;
-  border: none;
+  background: black;
+  color: white;
+  border: 1px solid black;
   padding: 12px 24px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.2s ease, color 0.2s ease;
+  border-radius: 4px;
 }
 
 .collections-error .retry-btn:hover {
-  background: #3b2925;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(59, 41, 37, 0.15);
+  background: white;
+  color: black;
 }
 
 @keyframes spin {
@@ -62,13 +62,11 @@
   100% { transform: rotate(360deg); }
 }
 
-@media (max-width: 1024px) {
-  .collections-grid {
-    gap: 18px;
-  }
-}
-
 @media (max-width: 768px) {
+  .collections-section {
+    padding: 40px 0;
+  }
+
   .collections-grid {
     grid-template-columns: 1fr;
     gap: 16px;

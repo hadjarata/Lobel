@@ -5,7 +5,7 @@
 .selector-label {
   font-size: 14px;
   font-weight: 500;
-  color: #222;
+  color: black;
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -14,7 +14,7 @@
 
 .selected-color {
   font-weight: 600;
-  color: #E91E63;
+  color: black;
 }
 
 .color-options {
@@ -40,7 +40,7 @@
 }
 
 .color-option.selected {
-  border-color: #222;
+  border-color: black;
   transform: scale(1.1);
 }
 

@@ -6,23 +6,20 @@ import './HeroSection.css';
 const HeroSection = () => {
   return (
     <section className="hero-section">
-      <div className="hero-background">
-        <div className="hero-overlay"></div>
-      </div>
       <div className="hero-content">
         <div className="hero-text">
           <span className="hero-eyebrow">Maison Lobel</span>
           <h1 className="hero-title">
-            Decouvrez une elegance douce, moderne et resolument feminine
+            Découvrez une élégance douce, moderne et résolument féminine
           </h1>
           <p className="hero-subtitle">
-            Des silhouettes soigneusement choisies, des textures delicates et
-            un vestiaire pense pour accompagner chaque instant avec grace.
+            Des silhouettes soigneusement choisies, des textures délicates et
+            un vestiaire pensé pour accompagner chaque instant avec grâce.
           </p>
           <Link to="/shop">
-            <Button variant="primary" size="large" className="hero-cta">
+            <button className="hero-cta">
               Voir la boutique
-            </Button>
+            </button>
           </Link>
         </div>
       </div>

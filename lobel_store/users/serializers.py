@@ -33,22 +33,49 @@ class CustomerSerializer(serializers.ModelSerializer):
             'date_created',
         ]
 
+    def validate_email(self, value):
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("Un utilisateur avec cet email existe déjà.")
+        return value
+
     def create(self, validated_data):
         email = validated_data.pop("email")
         password = validated_data.pop("password")
         first_name = validated_data.pop("first_name", "")
         last_name = validated_data.pop("last_name", "")
 
-        # 1. créer user
         user = User.objects.create_user(
             username=email,
             email=email,
             password=password,
             first_name=first_name,
             last_name=last_name,
+            is_active=False,
         )
 
-        # 2. créer customer
         customer = Customer.objects.create(user=user, **validated_data)
 
         return customer
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Les mots de passe ne correspondent pas.")
+        if len(data['password']) < 6:
+            raise serializers.ValidationError("Le mot de passe doit contenir au moins 6 caractères.")
+        return data
+
+
+class EmailVerificationSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()

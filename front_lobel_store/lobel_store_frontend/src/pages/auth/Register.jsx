@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { validateRegister } from '../../api/auth';
+import logo from '../../logo/LOBEL PROFIL 4.jpg.jpeg';
 import './Auth.css';
 
 const Register = () => {
@@ -47,8 +48,10 @@ const Register = () => {
     }
 
     try {
-      await register(registerData);
-      // Redirection automatique gérée par AuthContext
+      const response = await register(registerData);
+      if (response?.detail) {
+        navigate('/login', { state: { message: response.detail } });
+      }
     } catch (error) {
       setSubmitError(error.message || 'Erreur lors de l\'inscription');
     }
@@ -58,7 +61,7 @@ const Register = () => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-logo">
-          <h2>Lobel Store</h2>
+          <img src={logo} alt="Lobel Store logo" />
         </div>
         <div className="auth-header">
           <h1>Inscription</h1>

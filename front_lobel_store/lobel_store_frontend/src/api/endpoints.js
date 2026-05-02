@@ -8,6 +8,9 @@ export const ENDPOINTS = {
   LOGOUT: "/api/logout/", // ⚠️ vérifier backend (sinon inutile)
   CURRENT_USER: "/api/users/customers/me/",
   CHANGE_PASSWORD: "/api/users/change-password/",
+  VERIFY_EMAIL: "/api/users/customers/verify-email/",
+  PASSWORD_RESET_REQUEST: "/api/users/customers/request-password-reset/",
+  PASSWORD_RESET_CONFIRM: "/api/users/customers/reset-password/",
 
   // REGISTER (🔥 AJOUT IMPORTANT)
   REGISTER: "/api/users/customers/",

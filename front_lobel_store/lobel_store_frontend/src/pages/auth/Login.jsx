@@ -2,14 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { validateLogin } from '../../api/auth';
+import logo from '../../logo/LOBEL PROFIL 4.jpg.jpeg';
 import './Auth.css';
 
 const Login = () => {
-  console.log('Login.jsx - Composant monté');
   const navigate = useNavigate();
   const location = useLocation();
   const { login, loading, user } = useAuth();
-  console.log('Login.jsx - useAuth hook:', { login: !!login, loading, user: !!user });
+  const [infoMessage, setInfoMessage] = useState('');
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setInfoMessage(location.state.message);
+    }
+  }, [location.state]);
 
   
   // États pour le formulaire de login
@@ -21,7 +27,6 @@ const Login = () => {
   // États pour les erreurs
   const [loginErrors, setLoginErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
-  const [infoMessage, setInfoMessage] = useState('');
   
   console.log('Login.jsx - État loading au montage:', loading);
 
@@ -77,7 +82,7 @@ const Login = () => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-logo">
-          <h2>Lobel Store</h2>
+          <img src={logo} alt="Lobel Store logo" />
         </div>
         <div className="auth-header">
           <h1>Connexion</h1>
@@ -87,9 +92,6 @@ const Login = () => {
         <form 
           onSubmit={handleSubmit} 
           className="auth-form"
-          onClick={() => console.log('Form clicked')}
-          onMouseDown={() => console.log('Form mouse down')}
-          onSubmitCapture={(e) => console.log('Submit capture', e)}
         >
           {infoMessage && (
             <div className="auth-info">
@@ -141,14 +143,17 @@ const Login = () => {
             type="submit" 
             className="auth-submit-btn"
             disabled={loading}
-            onClick={() => console.log('Button clicked!')}
-            onMouseDown={() => console.log('Button mouse down!')}
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
 
         <div className="auth-footer">
+          <p>
+            <Link to="/forgot-password" className="auth-link">
+              Mot de passe oublié ?
+            </Link>
+          </p>
           <p>
             Vous n'avez pas de compte ?{' '}
             <Link to="/register" className="auth-link">

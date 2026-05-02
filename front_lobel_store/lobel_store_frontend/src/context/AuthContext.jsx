@@ -63,16 +63,14 @@ export const AuthProvider = ({ children }) => {
     try {
       const data = await registerService(userData);
 
-      if (data.access && data.refresh) {
-        localStorage.setItem('access', data.access);
-        localStorage.setItem('refresh', data.refresh);
-
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-        setIsAuthenticated(true);
-
-        navigate('/', { replace: true });
-      }
+      // Ne pas connecter automatiquement car l'utilisateur doit vérifier son email
+      // Rediriger vers login avec un message
+      navigate('/login', { 
+        state: { 
+          message: data.detail || 'Votre compte a été créé. Vérifiez votre email pour activer le compte.' 
+        },
+        replace: true 
+      });
 
       return data;
     } finally {
