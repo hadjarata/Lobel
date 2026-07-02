@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Customer
 
+import phonenumbers
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -28,7 +30,8 @@ class CustomerSerializer(serializers.ModelSerializer):
             'password',
             'first_name',
             'last_name',
-            'phone',
+            'country',
+            'phone_number',
             'address',
             'date_created',
         ]
@@ -37,6 +40,31 @@ class CustomerSerializer(serializers.ModelSerializer):
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError("Un utilisateur avec cet email existe déjà.")
         return value
+
+    def validate_country(self, value):
+        if not value:
+            return value
+        value = value.strip().upper()
+        valid_regions = {
+            region for regions in phonenumbers.COUNTRY_CODE_TO_REGION_CODE.values() for region in regions
+        }
+        if value not in valid_regions:
+            raise serializers.ValidationError("Le code pays est invalide.")
+        return value
+
+    def validate_phone_number(self, value):
+        if not value:
+            return value
+        value = value.strip()
+        if not value.startswith('+'):
+            value = '+' + value
+        try:
+            phone = phonenumbers.parse(value, None)
+        except phonenumbers.NumberParseException:
+            raise serializers.ValidationError("Numéro de téléphone invalide.")
+        if not phonenumbers.is_valid_number(phone):
+            raise serializers.ValidationError("Numéro de téléphone invalide.")
+        return phonenumbers.format_number(phone, phonenumbers.PhoneNumberFormat.E164)
 
     def create(self, validated_data):
         email = validated_data.pop("email")

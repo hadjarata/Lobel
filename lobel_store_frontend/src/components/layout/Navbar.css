@@ -1,0 +1,181 @@
+/* Navbar refactorisée - une seule barre centrée */
+.navbar {
+  background: #ffffff;
+  box-shadow: 0 2px 12px rgba(61, 45, 41, 0.06);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  border-bottom: 1px solid #E8D5E8;
+}
+
+.navbar-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+  position: relative;
+}
+
+/* Logo - positionné à gauche */
+.navbar-logo {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 8px;
+}
+
+.navbar-logo .logo-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: transform 0.3s ease;
+}
+
+.navbar-logo .logo-link:hover {
+  transform: scale(1.03);
+}
+
+.logo-image {
+  height: 54px;
+  width: auto;
+  max-width: 180px;
+  object-fit: contain;
+}
+
+/* Navigation principale - une seule barre */
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Boutons à droite */
+.navbar-right {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-logout,
+.navbar-login {
+  display: flex;
+  align-items: center;
+}
+
+/* NavItem réutilisable */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  color: #8B7D7D;
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  border-radius: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-item:hover {
+  color: #3D2D29;
+  background: #F5E6ED;
+  border-color: #E8D5E8;
+}
+
+.nav-item.nav-item-link.active {
+  color: #3D2D29;
+  background: #E8D5E8;
+  border-color: #e0e0e0;
+}
+
+/* NavItem spécifiques */
+.nav-item.logout-item:hover {
+  color: #d32f2f;
+  border-color: #d32f2f;
+  background: #ffebee;
+}
+
+/* Badge pour panier */
+.nav-item-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: black;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Responsive - Desktop: icône + texte, Mobile: icônes uniquement */
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 16px;
+    height: 70px;
+  }
+
+  .navbar-logo .logo-link {
+    font-size: 24px;
+  }
+
+  .navbar-nav {
+    gap: 4px;
+  }
+
+  .nav-item {
+    padding: 12px;
+    min-width: 48px;
+    justify-content: center;
+  }
+
+  /* Cacher le texte sur mobile */
+  .nav-item-text {
+    display: none;
+  }
+
+  /* Adapter le badge pour mobile */
+  .nav-item-badge {
+    top: -2px;
+    right: -2px;
+    font-size: 10px;
+    padding: 1px 4px;
+    min-width: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-container {
+    padding: 0 12px;
+  }
+
+  .navbar-logo .logo-link {
+    font-size: 22px;
+  }
+
+  .navbar-nav {
+    gap: 2px;
+  }
+
+  .nav-item {
+    padding: 10px;
+    min-width: 44px;
+  }
+}

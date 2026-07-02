@@ -1,0 +1,63 @@
+.add-to-cart-btn {
+  background: #3D2D29;
+  color: white;
+  border: 2px solid #3D2D29;
+  padding: 16px 24px;
+  border-radius: 0;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  outline: none;
+  width: 100%;
+}
+
+.add-to-cart-btn:hover:not(:disabled) {
+  background: transparent;
+  color: #3D2D29;
+  transform: translateY(-2px);
+}
+
+.add-to-cart-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.add-to-cart-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.add-to-cart-btn.secondary {
+  background: transparent;
+  border: 2px solid #3D2D29;
+  color: #3D2D29;
+}
+
+.add-to-cart-btn.secondary:hover:not(:disabled) {
+  background: #3D2D29;
+  color: white;
+}
+
+.add-to-cart-btn.outline {
+  background: transparent;
+  border: 2px solid #E8D5E8;
+  color: #8B7D7D;
+}
+
+.add-to-cart-btn.outline:hover:not(:disabled) {
+  border-color: #3D2D29;
+  color: black;
+}
+
+.add-to-cart-btn.requires-auth {
+  background: #999;
+  cursor: not-allowed;
+}
+
+.add-to-cart-btn.requires-auth:hover {
+  opacity: 0.8;
+  transform: none;
+}

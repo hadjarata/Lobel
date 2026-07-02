@@ -12,20 +12,30 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import environ
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env(
+    DEBUG=(bool, True),
+    ALLOWED_HOSTS=(list, []),
+    CORS_ALLOW_ALL_ORIGINS=(bool, True),
+    DATABASE_PORT=(int, 5433),
+)
+environ.Env.read_env(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-hcudt)ewvch-53g=l9iw9+rwv4=303*3reojgc&*k7d_qlx%5z'
+SECRET_KEY = env('SECRET_KEY', default='django-insecure-hcudt)ewvch-53g=l9iw9+rwv4=303*3reojgc&*k7d_qlx%5z')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env('ALLOWED_HOSTS')
 
 
 # Application definition
@@ -83,12 +93,12 @@ WSGI_APPLICATION = 'lobel_store.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'lobel_store_db',
-        'USER': 'postgres',
-        'PASSWORD': 'hadjara',
-        'HOST': 'localhost',
-        'PORT': '5433',
+        'ENGINE': env('DATABASE_ENGINE', default='django.db.backends.postgresql'),
+        'NAME': env('DATABASE_NAME', default='lobel_store_db'),
+        'USER': env('DATABASE_USER', default='postgres'),
+        'PASSWORD': env('DATABASE_PASSWORD', default='hadjara'),
+        'HOST': env('DATABASE_HOST', default='localhost'),
+        'PORT': env('DATABASE_PORT'),
     }
 }
 
@@ -149,11 +159,21 @@ REST_FRAMEWORK = {
     ),
 }
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'webmaster@localhost'
-FRONTEND_URL = 'http://localhost:5173'
+EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
+FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
+
+PAYMENT_PROVIDER = env('PAYMENT_PROVIDER', default='mock')
+LIGDICASH_API_KEY = env('LIGDICASH_API_KEY', default='')
+LIGDICASH_API_TOKEN = env('LIGDICASH_API_TOKEN', default='')
+LIGDICASH_BASE_URL = env('LIGDICASH_BASE_URL', default='https://app.ligdicash.com')
+LIGDICASH_STORE_NAME = env('LIGDICASH_STORE_NAME', default='LobelStore')
+LIGDICASH_STORE_URL = env('LIGDICASH_STORE_URL', default=FRONTEND_URL)
+LIGDICASH_RETURN_URL = env('LIGDICASH_RETURN_URL', default=f'{FRONTEND_URL}/checkout/success')
+LIGDICASH_CANCEL_URL = env('LIGDICASH_CANCEL_URL', default=f'{FRONTEND_URL}/checkout/cancel')
+LIGDICASH_CALLBACK_URL = env('LIGDICASH_CALLBACK_URL', default='')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = env('CORS_ALLOW_ALL_ORIGINS')

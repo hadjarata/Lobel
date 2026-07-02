@@ -1,0 +1,46 @@
+.checkout-success-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.checkout-success-card {
+  max-width: 520px;
+  width: 100%;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.checkout-success-card h1 {
+  margin-bottom: 16px;
+  color: #222;
+}
+
+.checkout-success-card p {
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.checkout-success-order {
+  font-weight: 600;
+  color: #067647;
+}
+
+.checkout-success-btn {
+  margin-top: 24px;
+  background: #333;
+  color: #fff;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.checkout-success-btn:hover {
+  background: #111;
+}

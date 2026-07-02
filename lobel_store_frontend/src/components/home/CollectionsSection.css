@@ -1,0 +1,76 @@
+.collections-section {
+  padding: var(--section-space) 0;
+  background: var(--primary-soft);
+}
+
+.collections-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  align-items: stretch;
+}
+
+.collections-loading,
+.collections-error,
+.collections-empty {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.collections-loading .loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #E8D5E8;
+  border-top: 3px solid var(--accent-taupe);
+  border-radius: 50%;
+  animation: spin 1.2s linear infinite;
+  margin: 0 auto 20px;
+}
+
+.collections-loading p,
+.collections-empty p {
+  color: var(--text-light);
+  font-size: 16px;
+  margin: 0;
+}
+
+.collections-error p {
+  color: #C41E3A;
+  font-size: 16px;
+  margin: 0 0 20px;
+}
+
+.collections-error .retry-btn {
+  background: var(--text-dark);
+  color: white;
+  border: 2px solid var(--text-dark);
+  padding: 14px 36px;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  border-radius: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.collections-error .retry-btn:hover {
+  background: transparent;
+  color: var(--text-dark);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .collections-section {
+    padding: var(--section-space-tight) 0;
+  }
+
+  .collections-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

@@ -1,0 +1,88 @@
+.home {
+  width: 100%;
+  min-height: 100vh;
+  background: #FAFAF8;
+  color: #3D2D29;
+  --home-max-width: 1200px;
+  --home-gutter: 20px;
+  --section-space: 80px;
+  --section-space-tight: 40px;
+  /* Palette féminine et élégante */
+  --primary-light: #E8D5E8;
+  --primary-soft: #F5E6ED;
+  --accent-gold: #D4AF95;
+  --accent-taupe: #8B7D7D;
+  --text-dark: #3D2D29;
+  --text-light: #6B5B55;
+  --background: #FAFAF8;
+  --background-light: #FFFFFF;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.home section {
+  width: 100%;
+}
+
+.home .container {
+  width: min(100%, var(--home-max-width));
+  margin: 0 auto;
+  padding-left: var(--home-gutter);
+  padding-right: var(--home-gutter);
+}
+
+.home .section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.home .section-title {
+  margin: 0 0 16px;
+  font-size: 3rem;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  color: var(--text-dark);
+  text-transform: none;
+}
+
+.home .section-subtitle {
+  max-width: 650px;
+  margin: 0 auto;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--text-light);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+
+.home .retry-btn,
+.home .view-all-btn,
+.home .view-shop-btn {
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  .home {
+    --section-space: 60px;
+    --section-space-tight: 30px;
+  }
+
+  .home .section-header {
+    margin-bottom: 44px;
+  }
+
+  .home .section-title {
+    font-size: 2.2rem;
+  }
+
+  .home .section-subtitle {
+    font-size: 1rem;
+  }
+}

@@ -36,6 +36,8 @@ class OrderSerializer(serializers.ModelSerializer):
             'customer',
             'date_ordered',
             'complete',
+            'status',
+            'paid_at',
             'transaction_id',
             'items',
             'cart_total',
