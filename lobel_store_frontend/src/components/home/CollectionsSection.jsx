@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CollectionCard from '../product/CollectionCard';
-import { getCollections, getProducts } from '../../api/products';
+import { getCollections } from '../../api/products';
+import { normalizeApiList } from '../../utils/collectionUtils';
 import './CollectionsSection.css';
 
 const CollectionsSection = () => {
@@ -9,40 +10,12 @@ const CollectionsSection = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchCollectionsWithProducts = async () => {
+    const fetchCollections = async () => {
       try {
         setLoading(true);
         setError(null);
         const collectionsData = await getCollections();
-        const collectionsArray = collectionsData.results || collectionsData;
-        
-        // Récupérer les produits pour chaque collection
-        const collectionsWithProducts = await Promise.all(
-          collectionsArray.map(async (collection) => {
-            try {
-              const productsData = await getProducts();
-              const allProducts = productsData.data || productsData;
-              
-              // Filtrer les produits de cette collection
-              const collectionProducts = allProducts.filter(product => 
-                product.collections && product.collections.some(c => c.id === collection.id)
-              ).slice(0, 6); // Limiter à 6 produits pour l'aperçu
-              
-              return {
-                ...collection,
-                products: collectionProducts
-              };
-            } catch (err) {
-              console.error(`Error fetching products for collection ${collection.id}:`, err);
-              return {
-                ...collection,
-                products: []
-              };
-            }
-          })
-        );
-        
-        setCollections(collectionsWithProducts);
+        setCollections(normalizeApiList(collectionsData));
       } catch (err) {
         setError('Impossible de charger les collections');
         console.error('Error fetching collections:', err);
@@ -51,7 +24,7 @@ const CollectionsSection = () => {
       }
     };
 
-    fetchCollectionsWithProducts();
+    fetchCollections();
   }, []);
 
   return (
@@ -81,21 +54,18 @@ const CollectionsSection = () => {
           </div>
         ) : (
           <div className="collections-grid">
-            {collections.map((collection) => {
-              console.log('Collection image:', collection.image, collection.image_url);
-
-              return (
-                <CollectionCard
-                  key={collection.id}
-                  title={collection.name || collection.title}
-                  subtitle={collection.description || collection.subtitle}
-                  image={collection.image_url || collection.image}
-                  video={collection.video_url || collection.video}
-                  products={collection.products || []}
-                  link={`/shop?collection=${collection.slug}`}
-                />
-              );
-            })}
+            {collections.map((collection) => (
+              <CollectionCard
+                key={collection.id}
+                title={collection.name || collection.title}
+                subtitle={collection.description || collection.subtitle}
+                image={collection.image_url || collection.image}
+                video={collection.video_url || collection.video}
+                coverType={collection.cover_type || 'image'}
+                hasProducts={Array.isArray(collection.products) && collection.products.length > 0}
+                link={`/shop?collection=${collection.slug}`}
+              />
+            ))}
           </div>
         )}
       </div>

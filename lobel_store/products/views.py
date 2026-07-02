@@ -25,6 +25,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = Product.objects.all().prefetch_related('collections')
+        collection_slug = self.request.query_params.get('collection')
+
+        if collection_slug:
+            queryset = queryset.filter(collections__slug=collection_slug).distinct()
+
+        return queryset
     
     @action(detail=False, methods=['get'])
     def new(self, request):
