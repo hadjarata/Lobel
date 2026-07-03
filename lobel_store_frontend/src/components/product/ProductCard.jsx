@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { addOrderItem } from '../../api/cart';
+import { addToCart } from '../../api/cart';
 import { toast } from '../../components/ui/toast';
 import './ProductCard.css';
 
@@ -16,7 +15,6 @@ const ProductCard = ({
   reviewCount,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
-  const { requireAuth } = useAuth();
   const displayPrice = Number(price || 0).toLocaleString('fr-FR', {
     maximumFractionDigits: 0,
   });
@@ -26,16 +24,13 @@ const ProductCard = ({
     event.preventDefault();
     event.stopPropagation();
 
-    if (!requireAuth()) {
-      return;
-    }
-
     setIsAdding(true);
 
     try {
-      await addOrderItem({
+      await addToCart({
         product_id: id,
         quantity: 1,
+        product: { id, name, price, image },
       });
       toast.success('Produit ajouté au panier');
     } catch (error) {

@@ -35,7 +35,12 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-hcudt)ewvch-53g=l9iw9+rw
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
+
+# En dev local (PC + téléphone sur le même réseau), autoriser toutes les origines Host
+# si ALLOWED_HOSTS n'est pas défini dans .env
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -176,4 +181,11 @@ LIGDICASH_CALLBACK_URL = env('LIGDICASH_CALLBACK_URL', default='')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# --- CORS & réseau local (développement) ---
 CORS_ALLOW_ALL_ORIGINS = env('CORS_ALLOW_ALL_ORIGINS')
+
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+    USE_X_FORWARDED_HOST = True
+    # JWT API : CSRF non requis pour /api/*. Admin Django depuis le LAN en dev :
+    CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])

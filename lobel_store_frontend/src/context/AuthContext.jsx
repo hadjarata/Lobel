@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { login as loginService, register as registerService, getCurrentUser } from '../api/auth';
+import { syncGuestCartToServer } from '../api/cart';
 
 const AuthContext = createContext();
 
@@ -12,7 +13,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Vérification au chargement
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem('access');
@@ -36,7 +36,6 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // LOGIN
   const login = useCallback(async (credentials) => {
     setLoading(true);
     try {
@@ -49,27 +48,27 @@ export const AuthProvider = ({ children }) => {
       setUser(userData);
       setIsAuthenticated(true);
 
-      navigate('/', { replace: true });
+      await syncGuestCartToServer();
+
+      const redirectTo = location.state?.from?.pathname || '/';
+      navigate(redirectTo, { replace: true });
 
       return data;
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, location.state]);
 
-  // REGISTER
   const register = useCallback(async (userData) => {
     setLoading(true);
     try {
       const data = await registerService(userData);
 
-      // Ne pas connecter automatiquement car l'utilisateur doit vérifier son email
-      // Rediriger vers login avec un message
-      navigate('/login', { 
-        state: { 
-          message: data.detail || 'Votre compte a été créé. Vérifiez votre email pour activer le compte.' 
+      navigate('/login', {
+        state: {
+          message: data.detail || 'Votre compte a été créé. Vérifiez votre email pour activer le compte.',
         },
-        replace: true 
+        replace: true,
       });
 
       return data;
@@ -78,26 +77,25 @@ export const AuthProvider = ({ children }) => {
     }
   }, [navigate]);
 
-  // LOGOUT
   const logout = useCallback(() => {
     localStorage.removeItem('access');
     localStorage.removeItem('refresh');
     setUser(null);
     setIsAuthenticated(false);
     setLoading(false);
+    window.dispatchEvent(new Event('cartUpdated'));
   }, []);
 
-  // PROTECTION ROUTES
-  const requireAuth = useCallback((callback = null) => {
+  const requireAuth = useCallback((callback = null, options = {}) => {
     if (!isAuthenticated) {
       navigate('/login', {
         state: {
-          from: {
+          from: options.from || {
             pathname: location.pathname,
-            search: location.search
+            search: location.search,
           },
-          message: 'Veuillez vous connecter pour continuer'
-        }
+          message: options.message || 'Veuillez vous connecter pour continuer',
+        },
       });
       return false;
     }
@@ -109,7 +107,6 @@ export const AuthProvider = ({ children }) => {
     return true;
   }, [isAuthenticated, navigate, location]);
 
-  // 🔥 MEMO (clé du problème)
   const value = useMemo(() => ({
     user,
     login,
@@ -117,7 +114,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     loading,
     isAuthenticated,
-    requireAuth
+    requireAuth,
   }), [user, loading, isAuthenticated, login, register, logout, requireAuth]);
 
   return (
@@ -127,7 +124,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// HOOK PROPRE (sans logs inutiles)
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

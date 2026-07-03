@@ -20,7 +20,7 @@ class MockProvider(PaymentProvider):
 
     def create_checkout(self, context: CheckoutContext) -> CheckoutSessionResult:
         session_token = f"mock_{context.payment.id}_{secrets.token_urlsafe(12)}"
-        frontend_url = settings.FRONTEND_URL.rstrip("/")
+        frontend_url = (context.frontend_url or settings.FRONTEND_URL).rstrip("/")
         payment_url = (
             f"{frontend_url}/checkout/success"
             f"?mock=true&paymentId={context.payment.id}&orderId={context.order.id}"

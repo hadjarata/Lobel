@@ -31,7 +31,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             elif complete_param.lower() in ("false", "0"):
                 queryset = queryset.filter(complete=False)
 
-        return queryset
+        return queryset.prefetch_related('items__product__media_files')
 
     @action(detail=False, methods=["get"], url_path="cart")
     def cart(self, request):
@@ -46,7 +46,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         if order is None:
             return Response(cart_service.empty_cart_payload())
 
-        return Response(OrderSerializer(order).data)
+        return Response(OrderSerializer(order, context={'request': request}).data)
 
 
 class OrderItemViewSet(viewsets.ModelViewSet):

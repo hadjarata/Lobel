@@ -32,7 +32,7 @@ class CheckoutService:
         self.payment_provider = payment_provider or get_payment_provider()
         self.cart_service = cart_service or CartService()
 
-    def create_checkout_session(self, user) -> dict:
+    def create_checkout_session(self, user, frontend_url: str = "") -> dict:
         order = self._get_active_cart(user)
         if order is None or not order.items.exists():
             raise EmptyCartError("Le panier est vide.")
@@ -62,6 +62,7 @@ class CheckoutService:
             customer_email=user.email or "",
             customer_firstname=user.first_name or "Client",
             customer_lastname=user.last_name or "LobelStore",
+            frontend_url=frontend_url,
         )
 
         try:

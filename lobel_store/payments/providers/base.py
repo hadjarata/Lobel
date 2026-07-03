@@ -41,6 +41,7 @@ class CheckoutContext:
     customer_email: str
     customer_firstname: str
     customer_lastname: str
+    frontend_url: str = ""
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getProductById, getProducts } from '../../api/products';
-import { addOrderItem, fetchCart } from '../../api/cart';
+import { addToCart } from '../../api/cart';
 import { useAuth } from '../../context/AuthContext';
 import ProductGallery from '../../components/product/ProductGallery';
 import ColorSelector from '../../components/product/ColorSelector';
@@ -14,7 +14,6 @@ const Product = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, requireAuth } = useAuth();
-  
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -205,75 +204,58 @@ const Product = () => {
   };
 
   const handleAddToCart = async () => {
-    // Protection du panier avec hook centralisé
-    if (!requireAuth()) {
-      return; // Redirection automatique gérée par useRequireAuth
-    }
-
-    // Vérifier si les variantes sont sélectionnées
     if (!selectedColor || !selectedSize) {
       alert('Veuillez sélectionner une couleur et une taille');
-      return;
+      return false;
     }
 
-    // Vérifier le stock disponible
     if (currentStock < quantity) {
       alert(`Stock insuffisant. Seulement ${currentStock} article(s) disponible(s).`);
-      return;
+      return false;
     }
 
     setIsAddingToCart(true);
-    
-    try {
-      // Préparer les données pour le panier avec le nouveau format
-      const cartItem = {
-        product_id: product.id,
-        color_id: selectedColor.id,
-        size_id: selectedSize.id,
-        quantity: quantity,
-        // Informations additionnelles pour l'affichage
-        name: product.name,
-        price: product.price,
-        image: product.media?.find(m => m.type === 'image')?.url || product.image,
-        color_name: selectedColor.name,
-        size_name: selectedSize.name
-      };
 
-      try {
-        console.log('Sending to API:', cartItem);
-        
-        const response = await addOrderItem({
-          product_id: cartItem.product_id,
-          quantity: cartItem.quantity,
-        });
-        
-        console.log('API response:', response);
-        await fetchCart();
-        
-        alert('Produit ajouté au panier avec succès');
-        
-      } catch (error) {
-        console.error('Erreur ajout panier:', error);
-        console.error('Response data:', error.response?.data);
-        console.error('Response status:', error.response?.status);
-        alert("Erreur lors de l'ajout au panier");
-      }
-      
-    } catch (err) {
-      console.error('Error adding to cart:', err);
-      alert('Erreur lors de l\'ajout au panier');
+    try {
+      const productImage =
+        product.media?.find((media) => media.type === 'image')?.url || product.image;
+
+      await addToCart({
+        product_id: product.id,
+        quantity,
+        product: {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: productImage,
+        },
+      });
+
+      alert('Produit ajouté au panier avec succès');
+      return true;
+    } catch (error) {
+      console.error('Erreur ajout panier:', error);
+      alert("Erreur lors de l'ajout au panier");
+      return false;
     } finally {
       setIsAddingToCart(false);
     }
   };
 
   const handleBuyNow = async () => {
-    // Protection du checkout avec hook centralisé
-    if (!requireAuth()) {
-      return; // Redirection automatique gérée par useRequireAuth
+    const added = await handleAddToCart();
+    if (!added) {
+      return;
     }
-    
-    await handleAddToCart();
+
+    if (!isAuthenticated) {
+      requireAuth(null, {
+        from: { pathname: '/checkout' },
+        message: 'Connectez-vous pour finaliser votre commande. Votre panier sera conservé.',
+      });
+      return;
+    }
+
     navigate('/checkout');
   };
 

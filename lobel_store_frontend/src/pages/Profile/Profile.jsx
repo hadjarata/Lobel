@@ -1,26 +1,219 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { fetchCart } from '../../api/cart';
+import { getOrders } from '../../api/orders';
+import { getPayments } from '../../api/payments';
+import { getCustomerProfile } from '../../api/profile';
+import ProfileHeader from '../../components/profile/ProfileHeader';
+import ProfileMobileNav from '../../components/profile/ProfileMobileNav';
+import ProfileSidebar from '../../components/profile/ProfileSidebar';
+import { VALID_PROFILE_TABS } from '../../components/profile/profileNavConfig';
+import ProfileInfoPanel from '../../components/profile/ProfileInfoPanel';
+import ProfileOrdersPanel from '../../components/profile/ProfileOrdersPanel';
+import ProfilePaymentsPanel from '../../components/profile/ProfilePaymentsPanel';
+import ProfileCartPanel from '../../components/profile/ProfileCartPanel';
+import ProfileSettingsPanel from '../../components/profile/ProfileSettingsPanel';
+import { normalizeApiList } from '../../utils/collectionUtils';
 import './Profile.css';
 
 const Profile = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [customer, setCustomer] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [cart, setCart] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [paymentsLoading, setPaymentsLoading] = useState(true);
+  const [cartLoading, setCartLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  const activeTab = VALID_PROFILE_TABS.includes(searchParams.get('tab'))
+    ? searchParams.get('tab')
+    : 'profile';
+
+  const setActiveTab = (tab) => {
+    setSearchParams({ tab }, { replace: true });
+  };
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setError('');
+      const profileData = await getCustomerProfile();
+      setCustomer(profileData);
+      return profileData;
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      setError('Impossible de charger votre profil.');
+      return null;
+    }
+  }, []);
+
+  const loadOrders = useCallback(async () => {
+    setOrdersLoading(true);
+    try {
+      const data = await getOrders();
+      setOrders(
+        normalizeApiList(data).filter(
+          (order) => !(order.complete === false && order.status === 'pending'),
+        ),
+      );
+    } catch (err) {
+      console.error('Error loading orders:', err);
+      setOrders([]);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, []);
+
+  const loadPayments = useCallback(async () => {
+    setPaymentsLoading(true);
+    try {
+      const data = await getPayments();
+      setPayments(normalizeApiList(data));
+    } catch (err) {
+      console.error('Error loading payments:', err);
+      setPayments([]);
+    } finally {
+      setPaymentsLoading(false);
+    }
+  }, []);
+
+  const loadCartData = useCallback(async () => {
+    setCartLoading(true);
+    try {
+      const cartData = await fetchCart({ notify: false });
+      setCart(cartData);
+    } catch (err) {
+      console.error('Error loading cart:', err);
+      setCart(null);
+    } finally {
+      setCartLoading(false);
+    }
+  }, []);
+
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadProfile(), loadOrders(), loadPayments(), loadCartData()]);
+  }, [loadProfile, loadOrders, loadPayments, loadCartData]);
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await refreshAll();
+      setLoading(false);
+    };
+
+    init();
+
+    const handleCartUpdated = () => {
+      loadCartData();
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdated);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdated);
+  }, [refreshAll, loadCartData]);
+
+  const stats = useMemo(
+    () => ({
+      ordersCount: orders.filter((order) => order.complete || order.status === 'paid').length,
+      cartCount: cart?.cart_items ?? cart?.items?.length ?? 0,
+    }),
+    [orders, cart],
+  );
+
+  const handleProfileUpdated = (updatedCustomer) => {
+    setCustomer(updatedCustomer);
+  };
+
+  const handleViewOrderFromPayment = (orderId) => {
+    setActiveTab('orders');
+    // Order detail selection handled in orders panel via state - pass via URL?
+    setSearchParams({ tab: 'orders', order: String(orderId) }, { replace: true });
+  };
+
+  const renderPanel = () => {
+    switch (activeTab) {
+      case 'orders':
+        return (
+          <ProfileOrdersPanel
+            orders={orders}
+            loading={ordersLoading}
+            onRefresh={loadOrders}
+            initialSelectedOrderId={
+              searchParams.get('order') ? Number(searchParams.get('order')) : null
+            }
+          />
+        );
+      case 'payments':
+        return (
+          <ProfilePaymentsPanel
+            payments={payments}
+            loading={paymentsLoading}
+            onRefresh={loadPayments}
+            onViewOrder={handleViewOrderFromPayment}
+          />
+        );
+      case 'cart':
+        return (
+          <ProfileCartPanel cart={cart} loading={cartLoading} onRefresh={loadCartData} />
+        );
+      case 'settings':
+        return <ProfileSettingsPanel />;
+      case 'profile':
+      default:
+        return (
+          <ProfileInfoPanel
+            customer={customer}
+            onUpdated={handleProfileUpdated}
+            startEditing={isEditingProfile}
+            onEditingChange={setIsEditingProfile}
+          />
+        );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="profile-page">
+        <div className="profile-loading">
+          <div className="profile-spinner" />
+          <p>Chargement de votre espace client...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="profile-page">
+        <div className="profile-error">
+          <p>{error}</p>
+          <button type="button" className="profile-btn profile-btn-primary" onClick={refreshAll}>
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="profile-page">
-      <div className="profile-container">
-        <h1>Mon Profil</h1>
-        <div className="profile-content">
-          <div className="profile-section">
-            <h2>Informations personnelles</h2>
-            <div className="profile-info">
-              <p>Nom: Utilisateur</p>
-              <p>Email: utilisateur@example.com</p>
-            </div>
-          </div>
-          
-          <div className="profile-section">
-            <h2>Commandes récentes</h2>
-            <div className="orders-list">
-              <p>Aucune commande récente</p>
-            </div>
-          </div>
+      <ProfileHeader
+        customer={customer}
+        compact={activeTab !== 'profile'}
+        onEditProfile={() => {
+          setActiveTab('profile');
+          setIsEditingProfile(true);
+        }}
+      />
+
+      <ProfileMobileNav activeTab={activeTab} onTabChange={setActiveTab} stats={stats} />
+
+      <div className="profile-dashboard">
+        <ProfileSidebar activeTab={activeTab} onTabChange={setActiveTab} stats={stats} />
+        <div className="profile-main" key={activeTab}>
+          {renderPanel()}
         </div>
       </div>
     </div>

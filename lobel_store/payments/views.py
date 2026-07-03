@@ -43,9 +43,18 @@ class CheckoutView(APIView):
 
     def post(self, request):
         service = CheckoutService()
+        frontend_url = (
+            request.data.get('frontend_url')
+            or request.data.get('frontendUrl')
+            or request.headers.get('Origin')
+            or ''
+        )
 
         try:
-            checkout_data = service.create_checkout_session(request.user)
+            checkout_data = service.create_checkout_session(
+                request.user,
+                frontend_url=frontend_url,
+            )
         except EmptyCartError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PaymentConfigurationError as exc:

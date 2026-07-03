@@ -92,8 +92,8 @@ export const getCurrentUser = async () => {
   return response.data;
 };
 
-export const updateProfile = async (userData) => {
-  const response = await api.put(ENDPOINTS.CURRENT_USER, userData);
+export const updateProfile = async (customerId, userData) => {
+  const response = await api.patch(ENDPOINTS.CUSTOMER_DETAIL(customerId), userData);
   return response.data;
 };
 

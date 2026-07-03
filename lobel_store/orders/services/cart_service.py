@@ -23,7 +23,7 @@ class CartService:
 
         queryset = Order.objects.filter(customer=customer, complete=False)
         if prefetch:
-            queryset = queryset.prefetch_related("items__product")
+            queryset = queryset.prefetch_related("items__product__media_files")
 
         orders = list(queryset.order_by("-date_ordered"))
         if not orders:
@@ -45,7 +45,7 @@ class CartService:
         if prefetch:
             return (
                 Order.objects.filter(pk=primary.pk)
-                .prefetch_related("items__product")
+                .prefetch_related("items__product__media_files")
                 .first()
             )
 

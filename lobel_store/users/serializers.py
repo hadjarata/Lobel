@@ -8,7 +8,7 @@ import phonenumbers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active']
 
 
 class CustomerSerializer(serializers.ModelSerializer):
@@ -84,6 +84,25 @@ class CustomerSerializer(serializers.ModelSerializer):
         customer = Customer.objects.create(user=user, **validated_data)
 
         return customer
+
+    def update(self, instance, validated_data):
+        first_name = validated_data.pop('first_name', None)
+        last_name = validated_data.pop('last_name', None)
+
+        user = instance.user
+        user_updated = False
+
+        if first_name is not None:
+            user.first_name = first_name
+            user_updated = True
+        if last_name is not None:
+            user.last_name = last_name
+            user_updated = True
+
+        if user_updated:
+            user.save(update_fields=['first_name', 'last_name'])
+
+        return super().update(instance, validated_data)
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):

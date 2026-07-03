@@ -9,6 +9,7 @@ import {
   LogOut 
 } from 'lucide-react';
 import NavItem from './NavItem';
+import { buildGuestCartPayload } from '../../utils/guestCart';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -16,10 +17,13 @@ const Navbar = () => {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    // Charger le compteur du panier depuis le localStorage
     const savedCount = localStorage.getItem('cartCount');
     if (savedCount) {
-      setCartCount(parseInt(savedCount));
+      setCartCount(parseInt(savedCount, 10));
+    } else if (!localStorage.getItem('access')) {
+      const guestCount = buildGuestCartPayload().cart_items;
+      setCartCount(guestCount);
+      localStorage.setItem('cartCount', String(guestCount));
     }
 
     // Écouter les mises à jour du panier
@@ -52,15 +56,12 @@ const Navbar = () => {
           {/* Navigation de base (toujours visible) */}
           <NavItem to="/" icon={Home}>Accueil</NavItem>
           <NavItem to="/shop" icon={ShoppingBag}>Boutique</NavItem>
+          <NavItem to="/cart" icon={ShoppingCart} badge={cartCount > 0 ? cartCount : null}>
+            Panier
+          </NavItem>
 
-          {/* Navigation conditionnelle selon auth */}
           {isAuthenticated ? (
-            <>
-              <NavItem to="/cart" icon={ShoppingCart} badge={cartCount > 0 ? cartCount : null}>
-                Panier
-              </NavItem>
-              <NavItem to="/profile" icon={User}>Profil</NavItem>
-            </>
+            <NavItem to="/profile" icon={User}>Profil</NavItem>
           ) : null}
         </div>
 

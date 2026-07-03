@@ -1,25 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { resolveMediaUrl } from '../../config/api';
 import './CollectionCard.css';
-
-const BACKEND_BASE_URL = 'http://127.0.0.1:8000';
-
-const normalizeMediaUrl = (url) => {
-  if (!url) {
-    return null;
-  }
-
-  if (
-    url.startsWith('http://') ||
-    url.startsWith('https://') ||
-    url.startsWith('data:') ||
-    url.startsWith('blob:')
-  ) {
-    return url;
-  }
-
-  return `${BACKEND_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`;
-};
 
 const CollectionCard = ({
   title,
@@ -30,8 +12,8 @@ const CollectionCard = ({
   hasProducts = false,
   link = '/shop',
 }) => {
-  const coverVideo = coverType === 'video' ? normalizeMediaUrl(video) : null;
-  const coverImage = normalizeMediaUrl(image);
+  const coverVideo = coverType === 'video' ? resolveMediaUrl(video) : null;
+  const coverImage = resolveMediaUrl(image);
 
   const renderCover = () => {
     if (coverVideo) {

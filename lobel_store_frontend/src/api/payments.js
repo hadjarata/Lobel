@@ -1,8 +1,11 @@
 import api from './axios';
 import { ENDPOINTS } from './endpoints';
+import { getFrontendOrigin } from '../config/api';
 
 export const initiateCheckout = async () => {
-  const response = await api.post(ENDPOINTS.CHECKOUT);
+  const response = await api.post(ENDPOINTS.CHECKOUT, {
+    frontend_url: getFrontendOrigin(),
+  });
   return response.data;
 };
 

@@ -22,6 +22,11 @@ class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
 
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Customer.objects.none()
+        return Customer.objects.filter(user=self.request.user)
+
     def get_permissions(self):
         if self.action in [
             'create',
