@@ -1,0 +1,94 @@
+.error-fallback {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at top, rgba(244, 241, 235, 0.85), #faf8f3 40%), #f6f2ec;
+}
+
+.error-fallback-card {
+  width: 100%;
+  max-width: 520px;
+  padding: 40px 32px;
+  border-radius: 24px;
+  background: #ffffff;
+  border: 1px solid rgba(61, 45, 41, 0.08);
+  box-shadow: 0 18px 50px rgba(15, 15, 15, 0.08);
+  text-align: center;
+}
+
+.error-fallback-eyebrow {
+  margin: 0 0 10px;
+  color: #d4af95;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.error-fallback-card h1 {
+  margin: 0 0 12px;
+  color: #3d2d29;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-weight: 500;
+}
+
+.error-fallback-text {
+  margin: 0 0 20px;
+  color: #6b5b55;
+  line-height: 1.6;
+}
+
+.error-fallback-details {
+  margin: 0 0 20px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #fafaf8;
+  color: #b42318;
+  font-size: 12px;
+  text-align: left;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-fallback-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.error-fallback-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.error-fallback-btn-primary {
+  background: #3d2d29;
+  border-color: #3d2d29;
+  color: #ffffff;
+}
+
+.error-fallback-btn-outline {
+  background: transparent;
+  border-color: #e8d5e8;
+  color: #3d2d29;
+}
+
+@media (min-width: 480px) {
+  .error-fallback-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+}

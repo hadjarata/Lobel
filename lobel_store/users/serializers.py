@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Customer
 
-import phonenumbers
+from .models import Customer
+from .validators import normalize_phone_number, validate_country_code
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -11,14 +11,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active']
 
 
-class CustomerSerializer(serializers.ModelSerializer):
-    # champs pour création user
-    email = serializers.EmailField(write_only=True)
-    password = serializers.CharField(write_only=True)
-    first_name = serializers.CharField(write_only=True, required=False)
-    last_name = serializers.CharField(write_only=True, required=False)
+class CustomerReadSerializer(serializers.ModelSerializer):
+    """Lecture seule – list, retrieve, me."""
 
-    # affichage user
     user = UserSerializer(read_only=True)
 
     class Meta:
@@ -26,14 +21,31 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'user',
+            'country',
+            'phone_number',
+            'address',
+            'date_created',
+        ]
+        read_only_fields = fields
+
+
+class RegisterSerializer(serializers.ModelSerializer):
+    """Inscription uniquement – POST /api/users/customers/."""
+
+    email = serializers.EmailField(write_only=True)
+    password = serializers.CharField(write_only=True, min_length=6)
+    first_name = serializers.CharField(write_only=True, allow_blank=True, required=False)
+    last_name = serializers.CharField(write_only=True, allow_blank=True, required=False)
+
+    class Meta:
+        model = Customer
+        fields = [
             'email',
             'password',
             'first_name',
             'last_name',
             'country',
             'phone_number',
-            'address',
-            'date_created',
         ]
 
     def validate_email(self, value):
@@ -42,35 +54,24 @@ class CustomerSerializer(serializers.ModelSerializer):
         return value
 
     def validate_country(self, value):
-        if not value:
-            return value
-        value = value.strip().upper()
-        valid_regions = {
-            region for regions in phonenumbers.COUNTRY_CODE_TO_REGION_CODE.values() for region in regions
-        }
-        if value not in valid_regions:
-            raise serializers.ValidationError("Le code pays est invalide.")
-        return value
+        try:
+            return validate_country_code(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     def validate_phone_number(self, value):
         if not value:
             return value
-        value = value.strip()
-        if not value.startswith('+'):
-            value = '+' + value
         try:
-            phone = phonenumbers.parse(value, None)
-        except phonenumbers.NumberParseException:
-            raise serializers.ValidationError("Numéro de téléphone invalide.")
-        if not phonenumbers.is_valid_number(phone):
-            raise serializers.ValidationError("Numéro de téléphone invalide.")
-        return phonenumbers.format_number(phone, phonenumbers.PhoneNumberFormat.E164)
+            return normalize_phone_number(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     def create(self, validated_data):
-        email = validated_data.pop("email")
-        password = validated_data.pop("password")
-        first_name = validated_data.pop("first_name", "")
-        last_name = validated_data.pop("last_name", "")
+        email = validated_data.pop('email')
+        password = validated_data.pop('password')
+        first_name = validated_data.pop('first_name', '')
+        last_name = validated_data.pop('last_name', '')
 
         user = User.objects.create_user(
             username=email,
@@ -81,26 +82,55 @@ class CustomerSerializer(serializers.ModelSerializer):
             is_active=False,
         )
 
-        customer = Customer.objects.create(user=user, **validated_data)
+        return Customer.objects.create(user=user, **validated_data)
 
-        return customer
+
+class CustomerUpdateSerializer(serializers.ModelSerializer):
+    """Mise à jour profil – PATCH /api/users/customers/{id}/."""
+
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = Customer
+        fields = [
+            'first_name',
+            'last_name',
+            'country',
+            'phone_number',
+            'address',
+        ]
+
+    def validate_country(self, value):
+        try:
+            return validate_country_code(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+
+    def validate_phone_number(self, value):
+        if not value:
+            return ''
+        try:
+            return normalize_phone_number(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
     def update(self, instance, validated_data):
         first_name = validated_data.pop('first_name', None)
         last_name = validated_data.pop('last_name', None)
 
         user = instance.user
-        user_updated = False
+        user_fields = []
 
         if first_name is not None:
-            user.first_name = first_name
-            user_updated = True
+            user.first_name = first_name.strip()
+            user_fields.append('first_name')
         if last_name is not None:
-            user.last_name = last_name
-            user_updated = True
+            user.last_name = last_name.strip()
+            user_fields.append('last_name')
 
-        if user_updated:
-            user.save(update_fields=['first_name', 'last_name'])
+        if user_fields:
+            user.save(update_fields=user_fields)
 
         return super().update(instance, validated_data)
 
@@ -123,6 +153,11 @@ class PasswordResetSerializer(serializers.Serializer):
         return data
 
 
-class EmailVerificationSerializer(serializers.Serializer):
+class VerifyEmailSerializer(serializers.Serializer):
     uid = serializers.CharField()
     token = serializers.CharField()
+
+
+# Alias rétrocompatibilité
+CustomerSerializer = CustomerReadSerializer
+EmailVerificationSerializer = VerifyEmailSerializer

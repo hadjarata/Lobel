@@ -1,11 +1,35 @@
 import React, { useEffect, useState } from 'react';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { updateCustomerProfile } from '../../api/profile';
 import { toast } from '../../components/ui/toast';
+import { ApiValidationError, applyApiFieldErrors, parseApiError } from '../../utils/apiErrors';
 import { formatDate, getCustomerDisplayName } from '../../utils/profileUtils';
+
+const formatPhoneForApi = (rawValue, countryCode = '') => {
+  if (!rawValue?.trim()) {
+    return '';
+  }
+
+  const sanitized = rawValue.trim().startsWith('+')
+    ? rawValue.trim()
+    : `+${rawValue.trim()}`;
+
+  const phone = parsePhoneNumberFromString(sanitized, countryCode || undefined);
+  return phone?.isValid() ? phone.format('E.164') : sanitized;
+};
+
+const buildProfilePayload = (form) => ({
+  first_name: form.first_name.trim(),
+  last_name: form.last_name.trim(),
+  country: form.country.trim().toUpperCase(),
+  phone_number: formatPhoneForApi(form.phone_number, form.country.trim().toUpperCase()),
+  address: form.address.trim(),
+});
 
 const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditingChange }) => {
   const [isEditing, setIsEditing] = useState(startEditing);
   const [isSaving, setIsSaving] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -35,6 +59,9 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
   const handleChange = (event) => {
     const { name, value } = event.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: '' }));
+    }
   };
 
   const handleSubmit = async (event) => {
@@ -47,17 +74,28 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
     setIsSaving(true);
 
     try {
-      const updated = await updateCustomerProfile(customer.id, form);
+      const payload = buildProfilePayload(form);
+
+      if (payload.phone_number && !payload.phone_number.startsWith('+')) {
+        toast.error('Numéro de téléphone invalide. Utilisez le format international (+221...).');
+        return;
+      }
+
+      const updated = await updateCustomerProfile(customer.id, payload);
       toast.success('Profil mis à jour');
       setIsEditing(false);
       onEditingChange?.(false);
       onUpdated?.(updated);
     } catch (err) {
-      const message =
-        err?.response?.data?.detail ||
-        Object.values(err?.response?.data || {})?.flat?.()?.[0] ||
-        'Impossible de mettre à jour le profil.';
-      toast.error(message);
+      if (err instanceof ApiValidationError) {
+        applyApiFieldErrors(err.fieldErrors, setFormErrors);
+        toast.error(err.message);
+        return;
+      }
+
+      const parsed = parseApiError(err, 'Impossible de mettre à jour le profil.');
+      applyApiFieldErrors(parsed.fieldErrors, setFormErrors);
+      toast.error(parsed.message);
     } finally {
       setIsSaving(false);
     }
@@ -128,6 +166,9 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
                 value={form.first_name}
                 onChange={handleChange}
               />
+              {formErrors.first_name && (
+                <span className="profile-field-error">{formErrors.first_name}</span>
+              )}
             </label>
             <label className="profile-field">
               <span>Nom</span>
@@ -137,6 +178,9 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
                 value={form.last_name}
                 onChange={handleChange}
               />
+              {formErrors.last_name && (
+                <span className="profile-field-error">{formErrors.last_name}</span>
+              )}
             </label>
             <label className="profile-field">
               <span>Pays (code ISO)</span>
@@ -147,6 +191,9 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
                 onChange={handleChange}
                 placeholder="SN"
               />
+              {formErrors.country && (
+                <span className="profile-field-error">{formErrors.country}</span>
+              )}
             </label>
             <label className="profile-field">
               <span>Téléphone</span>
@@ -157,6 +204,9 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
                 onChange={handleChange}
                 placeholder="+221..."
               />
+              {formErrors.phone_number && (
+                <span className="profile-field-error">{formErrors.phone_number}</span>
+              )}
             </label>
             <label className="profile-field profile-field-wide">
               <span>Adresse</span>
@@ -166,6 +216,9 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
                 onChange={handleChange}
                 rows={3}
               />
+              {formErrors.address && (
+                <span className="profile-field-error">{formErrors.address}</span>
+              )}
             </label>
           </div>
           <div className="profile-form-actions">

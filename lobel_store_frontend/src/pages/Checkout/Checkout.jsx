@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchCart } from '../../api/cart';
 import { initiateCheckout } from '../../api/payments';
 import { toast } from '../../components/ui/toast';
+import { parseApiError } from '../../utils/apiErrors';
 import { savePendingCheckout } from '../../utils/pendingCheckout';
 import './Checkout.css';
 
@@ -23,7 +24,8 @@ const Checkout = () => {
       return cartData;
     } catch (err) {
       console.error('Error fetching cart:', err);
-      setError('Impossible de charger le panier.');
+      const parsed = parseApiError(err, 'Impossible de charger le panier.');
+      setError(parsed.message);
       return null;
     } finally {
       setLoading(false);
@@ -68,12 +70,9 @@ const Checkout = () => {
       toast.info('Redirection vers la confirmation de paiement...');
       window.location.href = data.payment_url;
     } catch (err) {
-      const message =
-        err?.response?.data?.detail ||
-        err?.message ||
-        'Impossible de démarrer le paiement.';
-      setPaymentError(message);
-      toast.error(message);
+      const parsed = parseApiError(err, 'Impossible de démarrer le paiement.');
+      setPaymentError(parsed.message);
+      toast.error(parsed.message);
       setIsPaying(false);
     }
   };

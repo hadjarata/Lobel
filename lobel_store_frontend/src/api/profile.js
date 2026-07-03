@@ -1,5 +1,6 @@
 import api from './axios';
 import { ENDPOINTS } from './endpoints';
+import { throwApiValidationError } from '../utils/apiErrors';
 
 export const getCustomerProfile = async () => {
   const response = await api.get(ENDPOINTS.CURRENT_USER);
@@ -7,6 +8,10 @@ export const getCustomerProfile = async () => {
 };
 
 export const updateCustomerProfile = async (customerId, payload) => {
-  const response = await api.patch(ENDPOINTS.CUSTOMER_DETAIL(customerId), payload);
-  return response.data;
+  try {
+    const response = await api.patch(ENDPOINTS.CUSTOMER_DETAIL(customerId), payload);
+    return response.data;
+  } catch (error) {
+    throwApiValidationError(error, 'Impossible de mettre à jour le profil.');
+  }
 };

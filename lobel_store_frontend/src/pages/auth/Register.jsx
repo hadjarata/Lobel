@@ -1,17 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { validateRegister } from '../../api/auth';
 import Select from 'react-select';
-import PhoneInput from 'react-phone-input-2/lib/lib';
+import PhoneInputModule from 'react-phone-input-2';
 import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import countryData from 'country-telephone-data';
 import logo from '../../logo/LOBEL PROFIL 4.jpg.jpeg';
+import { ApiValidationError, applyApiFieldErrors, parseApiError } from '../../utils/apiErrors';
+import { buildCountryOptions, detectDefaultCountry } from '../../utils/countryTelephone';
+import { resolveDefaultExport } from '../../utils/resolveDefaultExport';
 import 'react-phone-input-2/lib/style.css';
 import './Auth.css';
 
+const PhoneInput = resolveDefaultExport(PhoneInputModule);
+
 const Register = () => {
-  const navigate = useNavigate();
   const { register, loading } = useAuth();
 
   const [registerData, setRegisterData] = useState({
@@ -27,21 +31,10 @@ const Register = () => {
   const [registerErrors, setRegisterErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
 
-  const countryOptions = useMemo(() => {
-    const options = countryData.allCountries.map((item) => ({
-      label: `${item.name} (+${item.dialCode})`,
-      value: item.iso2.toUpperCase(),
-      dialCode: item.dialCode,
-    }));
-    return options.sort((a, b) => a.label.localeCompare(b.label));
-  }, []);
+  const countryOptions = useMemo(() => buildCountryOptions(countryData), []);
 
   useEffect(() => {
-    const locale = navigator.language || navigator.userLanguage || 'FR';
-    const detected = locale.split(/[-_]/)[1]?.toUpperCase() || 'FR';
-    const defaultCountry = countryOptions.find((option) => option.value === detected)
-      || countryOptions.find((option) => option.value === 'FR');
-    setSelectedCountry(defaultCountry || countryOptions[0]);
+    setSelectedCountry(detectDefaultCountry(countryOptions));
   }, [countryOptions]);
 
   const handleChange = (e) => {
@@ -55,11 +48,14 @@ const Register = () => {
     }
   };
 
-  const formatPhoneNumber = (rawValue) => {
-    if (!rawValue) return '';
+  const formatPhoneNumber = (rawValue, countryCode = '') => {
+    if (!rawValue) {
+      return '';
+    }
+
     const sanitized = rawValue.trim().startsWith('+') ? rawValue.trim() : `+${rawValue.trim()}`;
-    const phone = parsePhoneNumberFromString(sanitized);
-    return phone && phone.isValid() ? phone.format('E.164') : null;
+    const phone = parsePhoneNumberFromString(sanitized, countryCode || undefined);
+    return phone?.isValid() ? phone.format('E.164') : null;
   };
 
   const handleSubmit = async (e) => {
@@ -68,7 +64,9 @@ const Register = () => {
     const payload = {
       ...registerData,
       country: selectedCountry?.value || '',
-      phone_number: phoneNumber ? formatPhoneNumber(phoneNumber) : '',
+      phone_number: phoneNumber
+        ? formatPhoneNumber(phoneNumber, selectedCountry?.value || '')
+        : '',
     };
 
     if (phoneNumber && !payload.phone_number) {
@@ -83,14 +81,21 @@ const Register = () => {
     }
 
     try {
-      const response = await register(payload);
-      if (response?.detail) {
-        navigate('/login', { state: { message: response.detail } });
-      }
+      await register(payload);
     } catch (error) {
-      setSubmitError(error.message || 'Erreur lors de l\'inscription');
+      if (error instanceof ApiValidationError) {
+        applyApiFieldErrors(error.fieldErrors, setRegisterErrors);
+        setSubmitError(error.message);
+        return;
+      }
+
+      const parsed = parseApiError(error, "Erreur lors de l'inscription");
+      applyApiFieldErrors(parsed.fieldErrors, setRegisterErrors);
+      setSubmitError(parsed.message);
     }
   };
+
+  const phoneCountryCode = selectedCountry?.value?.toLowerCase() || 'fr';
 
   return (
     <div className="auth-container">
@@ -169,7 +174,7 @@ const Register = () => {
                 value={selectedCountry}
                 options={countryOptions}
                 onChange={(option) => {
-                  setSelectedCountry(option);
+                  setSelectedCountry(option || null);
                   if (registerErrors.country) {
                     setRegisterErrors((prev) => ({ ...prev, country: '' }));
                   }
@@ -187,7 +192,7 @@ const Register = () => {
             <div className="form-group">
               <label htmlFor="phone_number">Numéro de téléphone</label>
               <PhoneInput
-                country={selectedCountry?.value?.toLowerCase()}
+                country={phoneCountryCode}
                 value={phoneNumber}
                 onChange={(value) => {
                   setPhoneNumber(value);

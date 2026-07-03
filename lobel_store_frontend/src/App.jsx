@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
 import ToastProvider from './components/ui/ToastProvider';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/auth/PrivateRoute';
@@ -18,8 +17,7 @@ import VerifyEmail from './pages/auth/VerifyEmail';
 
 function App() {
   return (
-    <AuthProvider>
-      <ToastProvider>
+    <ToastProvider>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -50,8 +48,7 @@ function App() {
           } />
         </Routes>
       </Layout>
-      </ToastProvider>
-    </AuthProvider>
+    </ToastProvider>
   );
 }
 

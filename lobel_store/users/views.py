@@ -11,16 +11,26 @@ from rest_framework.response import Response
 
 from .models import Customer
 from .serializers import (
-    CustomerSerializer,
+    CustomerReadSerializer,
+    RegisterSerializer,
+    CustomerUpdateSerializer,
     PasswordResetRequestSerializer,
     PasswordResetSerializer,
-    EmailVerificationSerializer,
+    VerifyEmailSerializer,
 )
 
 
 class CustomerViewSet(viewsets.ModelViewSet):
     queryset = Customer.objects.all()
-    serializer_class = CustomerSerializer
+    serializer_class = CustomerReadSerializer
+    http_method_names = ['get', 'post', 'patch', 'put', 'head', 'options']
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return RegisterSerializer
+        if self.action in ('update', 'partial_update'):
+            return CustomerUpdateSerializer
+        return CustomerReadSerializer
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
@@ -32,13 +42,23 @@ class CustomerViewSet(viewsets.ModelViewSet):
             'create',
             'request_password_reset',
             'reset_password',
-            'verify_email'
+            'verify_email',
         ]:
             return [permissions.AllowAny()]
         return [permissions.IsAuthenticated()]
 
     def get_serializer_context(self):
         return {'request': self.request}
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        instance.refresh_from_db()
+        instance.user.refresh_from_db()
+        return Response(CustomerReadSerializer(instance).data)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -47,7 +67,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
         self._send_verification_email(serializer.instance.user, request)
         return Response(
             {'detail': 'Votre compte a été créé. Vérifiez votre email pour activer le compte.'},
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )
 
     def _build_frontend_link(self, request, path):
@@ -98,19 +118,19 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         if not user or not user.is_authenticated:
             return Response(
-                {"detail": "Authentication required"},
-                status=status.HTTP_401_UNAUTHORIZED
+                {'detail': 'Authentication required'},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
 
         customer = Customer.objects.filter(user=user).first()
 
         if not customer:
             return Response(
-                {"detail": "Customer profile not found for this user."},
-                status=status.HTTP_404_NOT_FOUND
+                {'detail': 'Customer profile not found for this user.'},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        serializer = self.get_serializer(customer)
+        serializer = CustomerReadSerializer(customer)
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'], url_path='request-password-reset', permission_classes=[permissions.AllowAny])
@@ -125,7 +145,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         return Response(
             {'detail': 'Si l\'email existe, un lien de réinitialisation a été envoyé.'},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
     @action(detail=False, methods=['post'], url_path='reset-password', permission_classes=[permissions.AllowAny])
@@ -143,13 +163,13 @@ class CustomerViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return Response(
                 {'detail': 'Lien de réinitialisation invalide.'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not default_token_generator.check_token(user, token):
             return Response(
                 {'detail': 'Le lien de réinitialisation est invalide ou expiré.'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         user.set_password(password)
@@ -158,12 +178,12 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         return Response(
             {'detail': 'Le mot de passe a été réinitialisé avec succès.'},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
     @action(detail=False, methods=['post'], url_path='verify-email', permission_classes=[permissions.AllowAny])
     def verify_email(self, request):
-        serializer = EmailVerificationSerializer(data=request.data)
+        serializer = VerifyEmailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         uid = serializer.validated_data['uid']
@@ -175,13 +195,13 @@ class CustomerViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return Response(
                 {'detail': 'Lien de vérification invalide.'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not default_token_generator.check_token(user, token):
             return Response(
                 {'detail': 'Le lien de vérification est invalide ou expiré.'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         user.is_active = True
@@ -189,5 +209,5 @@ class CustomerViewSet(viewsets.ModelViewSet):
 
         return Response(
             {'detail': 'Email vérifié avec succès. Vous pouvez maintenant vous connecter.'},
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )

@@ -1,12 +1,17 @@
 import api from './axios';
 import { ENDPOINTS } from './endpoints';
 import { getFrontendOrigin } from '../config/api';
+import { throwApiValidationError } from '../utils/apiErrors';
 
 export const initiateCheckout = async () => {
-  const response = await api.post(ENDPOINTS.CHECKOUT, {
-    frontend_url: getFrontendOrigin(),
-  });
-  return response.data;
+  try {
+    const response = await api.post(ENDPOINTS.CHECKOUT, {
+      frontend_url: getFrontendOrigin(),
+    });
+    return response.data;
+  } catch (error) {
+    throwApiValidationError(error, 'Impossible de démarrer le paiement.');
+  }
 };
 
 export const confirmMockPayment = async (paymentId) => {

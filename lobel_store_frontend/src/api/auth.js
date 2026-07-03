@@ -1,38 +1,36 @@
 import api from "./axios";
 import { ENDPOINTS } from "./endpoints";
+import { parseApiError, throwApiValidationError } from "../utils/apiErrors";
+
+const LOGIN_INACTIVE_MESSAGE = "No active account found with the given credentials";
+
+const translateLoginMessage = (message) => {
+  if (message === LOGIN_INACTIVE_MESSAGE) {
+    return "Votre compte n'est pas activé. Vérifiez votre email pour activer votre compte.";
+  }
+
+  return message || "Erreur de connexion";
+};
 
 // =========================
-// LOGIN
+// LOGIN (JWT – /api/token/)
 // =========================
 export const login = async (credentials) => {
-  console.log('api/auth.login() appelé avec:', credentials);
   try {
     const payload = {
-      username: credentials.email, // Utiliser uniquement l'email
-      password: credentials.password
+      username: credentials.email,
+      password: credentials.password,
     };
-    console.log('Payload envoyé:', payload);
-    console.log('Endpoint:', ENDPOINTS.LOGIN);
-    
+
     const response = await api.post(ENDPOINTS.LOGIN, payload);
-    console.log('Réponse API:', response.data);
-
     return response.data;
-
   } catch (error) {
-    console.log('Erreur API login:', error);
-    if (error.response) {
-      const message = error.response.data?.detail;
-      console.log('Message erreur:', message);
-
-      if (message === "No active account found with the given credentials") {
-        throw new Error("Votre compte n'est pas activé. Vérifiez votre email pour activer votre compte.");
-      }
-
-      throw new Error(message || "Erreur de connexion");
+    if (error.response?.data?.detail) {
+      throw new Error(translateLoginMessage(error.response.data.detail));
     }
 
-    throw new Error("Impossible de se connecter au serveur");
+    const parsed = parseApiError(error, "Impossible de se connecter au serveur");
+    throw new Error(parsed.message);
   }
 };
 
@@ -49,19 +47,11 @@ export const register = async (userData) => {
       country: userData.country,
       phone_number: userData.phone_number,
     };
-    
+
     const response = await api.post(ENDPOINTS.REGISTER, registerPayload);
     return response.data;
   } catch (error) {
-    if (error.response?.data) {
-      const errors = error.response.data;
-      if (typeof errors === 'object') {
-        // Gérer les erreurs de validation Django
-        const messages = Object.values(errors).flat();
-        throw new Error(messages[0] || "Erreur d'inscription");
-      }
-    }
-    throw error;
+    throwApiValidationError(error, "Erreur d'inscription");
   }
 };
 
@@ -80,7 +70,7 @@ export const logout = async () => {
   try {
     await api.post(ENDPOINTS.LOGOUT);
   } catch (error) {
-    // ⚠️ optionnel : certains backends n'ont pas logout
+    // optionnel : certains backends n'ont pas logout
   }
 };
 
@@ -93,8 +83,12 @@ export const getCurrentUser = async () => {
 };
 
 export const updateProfile = async (customerId, userData) => {
-  const response = await api.patch(ENDPOINTS.CUSTOMER_DETAIL(customerId), userData);
-  return response.data;
+  try {
+    const response = await api.patch(ENDPOINTS.CUSTOMER_DETAIL(customerId), userData);
+    return response.data;
+  } catch (error) {
+    throwApiValidationError(error, "Impossible de mettre à jour le profil.");
+  }
 };
 
 // =========================
@@ -106,18 +100,30 @@ export const changePassword = async (passwordData) => {
 };
 
 export const requestPasswordReset = async (payload) => {
-  const response = await api.post(ENDPOINTS.PASSWORD_RESET_REQUEST, payload);
-  return response.data;
+  try {
+    const response = await api.post(ENDPOINTS.PASSWORD_RESET_REQUEST, payload);
+    return response.data;
+  } catch (error) {
+    throwApiValidationError(error, "Impossible d'envoyer l'email de réinitialisation.");
+  }
 };
 
 export const resetPassword = async (payload) => {
-  const response = await api.post(ENDPOINTS.PASSWORD_RESET_CONFIRM, payload);
-  return response.data;
+  try {
+    const response = await api.post(ENDPOINTS.PASSWORD_RESET_CONFIRM, payload);
+    return response.data;
+  } catch (error) {
+    throwApiValidationError(error, "Impossible de réinitialiser le mot de passe.");
+  }
 };
 
 export const verifyEmail = async (payload) => {
-  const response = await api.post(ENDPOINTS.VERIFY_EMAIL, payload);
-  return response.data;
+  try {
+    const response = await api.post(ENDPOINTS.VERIFY_EMAIL, payload);
+    return response.data;
+  } catch (error) {
+    throwApiValidationError(error, "Impossible de vérifier l'email.");
+  }
 };
 
 export const validateResetPassword = (passwordData) => {
@@ -178,43 +184,28 @@ export const validateEmailOnly = (email) => {
 export const validateRegister = (userData) => {
   const errors = {};
 
-  // =========================
-  // FIRST NAME
-  // =========================
   if (!userData.first_name) {
     errors.first_name = "Le prénom est requis";
   } else if (userData.first_name.length < 2) {
     errors.first_name = "Le prénom doit contenir au moins 2 caractères";
   }
 
-  // =========================
-  // LAST NAME
-  // =========================
   if (!userData.last_name) {
     errors.last_name = "Le nom est requis";
   } else if (userData.last_name.length < 2) {
     errors.last_name = "Le nom doit contenir au moins 2 caractères";
   }
 
-  // =========================
-  // EMAIL
-  // =========================
   if (!userData.email) {
     errors.email = "L'email est requis";
   } else if (!/\S+@\S+\.\S+/.test(userData.email)) {
     errors.email = "Email invalide";
   }
 
-  // =========================
-  // PAYS
-  // =========================
   if (!userData.country) {
     errors.country = "Le pays est requis";
   }
 
-  // =========================
-  // TÉLÉPHONE
-  // =========================
   if (userData.phone_number) {
     const normalizedPhone = userData.phone_number.trim().replace(/\s+/g, '');
     if (!/^\+?[0-9]{7,20}$/.test(normalizedPhone)) {
@@ -222,18 +213,12 @@ export const validateRegister = (userData) => {
     }
   }
 
-  // =========================
-  // PASSWORD
-  // =========================
   if (!userData.password) {
     errors.password = "Le mot de passe est requis";
   } else if (userData.password.length < 6) {
     errors.password = "Le mot de passe doit contenir au moins 6 caractères";
   }
 
-  // =========================
-  // CONFIRMATION DU MOT DE PASSE
-  // =========================
   if (!userData.confirm_password) {
     errors.confirm_password = "La confirmation du mot de passe est requise";
   } else if (userData.password && userData.password !== userData.confirm_password) {

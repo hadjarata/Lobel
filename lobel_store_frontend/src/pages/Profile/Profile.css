@@ -395,6 +395,12 @@
   border-color: var(--profile-accent);
 }
 
+.profile-field-error {
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .profile-form-actions {
   display: flex;
   justify-content: flex-end;

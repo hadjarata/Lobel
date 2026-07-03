@@ -1,15 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { validateLogin } from '../../api/auth';
+import { parseApiError } from '../../utils/apiErrors';
 import logo from '../../logo/LOBEL PROFIL 4.jpg.jpeg';
 import './Auth.css';
 
 const Login = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const { login, loading, user } = useAuth();
+  const { login, loading } = useAuth();
   const [infoMessage, setInfoMessage] = useState('');
+  const [loginData, setLoginData] = useState({
+    email: '',
+    password: '',
+  });
+  const [loginErrors, setLoginErrors] = useState({});
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     if (location.state?.message) {
@@ -17,64 +23,37 @@ const Login = () => {
     }
   }, [location.state]);
 
-  
-  // États pour le formulaire de login
-  const [loginData, setLoginData] = useState({
-    email: '',
-    password: ''
-  });
-  
-  // États pour les erreurs
-  const [loginErrors, setLoginErrors] = useState({});
-  const [submitError, setSubmitError] = useState('');
-  
-  console.log('Login.jsx - État loading au montage:', loading);
-
-  // Gérer les changements dans le formulaire
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setLoginData(prev => ({ ...prev, [name]: value }));
-    // Effacer l'erreur quand l'utilisateur tape
+    setLoginData((prev) => ({ ...prev, [name]: value }));
+
     if (loginErrors[name]) {
-      setLoginErrors(prev => ({ ...prev, [name]: '' }));
+      setLoginErrors((prev) => ({ ...prev, [name]: '' }));
     }
-    // Effacer l'erreur générale
+
     if (submitError) {
       setSubmitError('');
     }
   };
 
-  // Soumettre le formulaire de login
   const handleSubmit = async (e) => {
-    console.log('handleSubmit déclenché');
     e.preventDefault();
 
     if (loading) {
-      console.log('Loading bloqué');
       return;
     }
 
-    console.log('Données login:', loginData);
-
     const validation = validateLogin(loginData);
     if (!validation.isValid) {
-      console.log('Validation échouée:', validation.errors);
       setLoginErrors(validation.errors);
       return;
     }
 
-    console.log('Validation OK, appel de login()');
     try {
       await login(loginData);
-      console.log('Login réussi');
     } catch (error) {
-      console.log('Erreur login:', error);
-      const message =
-        error.response?.data?.detail ||
-        error.response?.data?.message ||
-        'Email ou mot de passe incorrect';
-
-      setSubmitError(message);
+      const parsed = parseApiError(error, 'Email ou mot de passe incorrect');
+      setSubmitError(error.message || parsed.message);
     }
   };
 
@@ -89,21 +68,10 @@ const Login = () => {
           <p>Accédez à votre compte</p>
         </div>
 
-        <form 
-          onSubmit={handleSubmit} 
-          className="auth-form"
-        >
-          {infoMessage && (
-            <div className="auth-info">
-              {infoMessage}
-            </div>
-          )}
-          
-          {submitError && (
-            <div className="auth-error">
-              {submitError}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="auth-form">
+          {infoMessage && <div className="auth-info">{infoMessage}</div>}
+
+          {submitError && <div className="auth-error">{submitError}</div>}
 
           <div className="form-group">
             <label htmlFor="email">Email</label>
@@ -139,11 +107,7 @@ const Login = () => {
             )}
           </div>
 
-          <button 
-            type="submit" 
-            className="auth-submit-btn"
-            disabled={loading}
-          >
+          <button type="submit" className="auth-submit-btn" disabled={loading}>
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>
@@ -155,9 +119,9 @@ const Login = () => {
             </Link>
           </p>
           <p>
-            Vous n'avez pas de compte ?{' '}
+            Vous n&apos;avez pas de compte ?{' '}
             <Link to="/register" className="auth-link">
-              S'inscrire
+              S&apos;inscrire
             </Link>
           </p>
         </div>
