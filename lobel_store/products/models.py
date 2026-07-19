@@ -1,6 +1,22 @@
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.text import slugify
+from pathlib import Path
+import uuid
+
+from .media_validation import validate_image_upload, validate_video_upload
+
+
+def product_media_upload_to(instance, filename):
+    return f"products/{instance.product_id}/media/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
+
+
+def collection_image_upload_to(instance, filename):
+    return f"collections/{instance.pk or 'new'}/images/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
+
+
+def collection_video_upload_to(instance, filename):
+    return f"collections/{instance.pk or 'new'}/videos/{uuid.uuid4().hex}{Path(filename).suffix.lower()}"
 
 
 # =========================
@@ -10,6 +26,7 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     description = models.TextField(blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -22,7 +39,7 @@ class Product(models.Model):
     name = models.CharField(max_length=200)
     category = models.ForeignKey(
         Category,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='products'
     )
     description = models.TextField(blank=True)
@@ -32,6 +49,7 @@ class Product(models.Model):
 
     # best sellers logic
     sales_count = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
     collections = models.ManyToManyField(
     'Collection',
     related_name='products',
@@ -61,17 +79,33 @@ class ProductMedia(models.Model):
     )
     
     media_type = models.CharField(max_length=10, choices=MEDIA_TYPES)
-    file = models.FileField(upload_to='product_media/')
+    file = models.FileField(upload_to=product_media_upload_to)
     
     order = models.PositiveIntegerField(default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    format = models.CharField(max_length=16, blank=True)
+    mime_type = models.CharField(max_length=64, blank=True)
+    size_bytes = models.PositiveBigIntegerField(null=True, blank=True)
+    width = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    duration_seconds = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True)
+    checksum = models.CharField(max_length=64, blank=True)
 
     class Meta:
         ordering = ['order']
 
     def __str__(self):
         return f"{self.product.name} - {self.media_type}"
+
+
+    def clean(self):
+        super().clean()
+        if self.file and not getattr(self.file, "_committed", True):
+            validator = validate_image_upload if self.media_type == "image" else validate_video_upload
+            for key, value in validator(self.file).items():
+                setattr(self, key, value)
 
 
 # =========================
@@ -120,9 +154,26 @@ class ProductVariant(models.Model):
     )
 
     stock = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    sku = models.CharField(max_length=100, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     class Meta:
-        unique_together = ('product', 'color', 'size')
+        constraints = [
+            models.UniqueConstraint(
+                fields=("product", "color", "size"),
+                name="unique_product_color_size_variant",
+                nulls_distinct=False,
+            ),
+            models.CheckConstraint(
+                condition=models.Q(stock__gte=0),
+                name="variant_stock_non_negative",
+            ),
+        ]
+
+    @property
+    def effective_price(self):
+        return self.price if self.price is not None else self.product.price
 
     def __str__(self):
         return f"{self.product.name} - {self.color} - {self.size}"
@@ -147,8 +198,8 @@ class Collection(models.Model):
         default=COVER_TYPE_IMAGE,
     )
 
-    image = models.ImageField(upload_to='collections/images/', blank=True, null=True)
-    video = models.FileField(upload_to='collections/videos/', blank=True, null=True)
+    image = models.ImageField(upload_to=collection_image_upload_to, blank=True, null=True)
+    video = models.FileField(upload_to=collection_video_upload_to, blank=True, null=True)
 
     is_active = models.BooleanField(default=True)
 
@@ -156,9 +207,17 @@ class Collection(models.Model):
     end_date = models.DateField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    format = models.CharField(max_length=16, blank=True)
+    mime_type = models.CharField(max_length=64, blank=True)
+    size_bytes = models.PositiveBigIntegerField(null=True, blank=True)
+    width = models.PositiveIntegerField(null=True, blank=True)
+    height = models.PositiveIntegerField(null=True, blank=True)
+    duration_seconds = models.DecimalField(max_digits=8, decimal_places=3, null=True, blank=True)
+    checksum = models.CharField(max_length=64, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def clean(self):
+        super().clean()
         if self.cover_type == self.COVER_TYPE_IMAGE:
             self.video = None
 
@@ -166,6 +225,9 @@ class Collection(models.Model):
                 raise ValidationError({
                     'image': "An image is required when cover type is set to image."
                 })
+            elif not getattr(self.image, "_committed", True):
+                for key, value in validate_image_upload(self.image).items():
+                    setattr(self, key, value)
 
         elif self.cover_type == self.COVER_TYPE_VIDEO:
             self.image = None
@@ -174,6 +236,9 @@ class Collection(models.Model):
                 raise ValidationError({
                     'video': "A video is required when cover type is set to video."
                 })
+            elif not getattr(self.video, "_committed", True):
+                for key, value in validate_video_upload(self.video).items():
+                    setattr(self, key, value)
 
         else:
             raise ValidationError({

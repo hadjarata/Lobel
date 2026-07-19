@@ -16,9 +16,9 @@ from payments.providers.base import (
     PaymentInvalidResponseError,
     mock_provider_is_allowed,
 )
-from payments.serializers import PaymentSerializer
+from payments.serializers import PaymentSerializer, PaymentListSerializer
 from payments.permissions import IsPaymentOwner
-from payments.services.checkout_service import CheckoutService, EmptyCartError
+from payments.services.checkout_service import CheckoutError, CheckoutService, EmptyCartError
 from payments.services.mock_confirm_service import (
     MockConfirmError,
     MockConfirmService,
@@ -35,10 +35,22 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PaymentSerializer
     permission_classes = [permissions.IsAuthenticated, IsPaymentOwner]
 
+    def get_serializer_class(self):
+        return PaymentListSerializer if self.action == "list" else PaymentSerializer
+
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return Payment.objects.none()
-        return Payment.objects.filter(order__customer__user=self.request.user)
+        queryset = Payment.objects.filter(
+            order__customer__user=self.request.user
+        ).select_related("order", "order__customer__user").order_by("-date_paid", "-id")
+        if self.action == "retrieve":
+            queryset = queryset.prefetch_related(
+                "order__items__product", "order__items__variant__product",
+                "order__items__variant__color", "order__items__variant__size",
+                "order__status_history",
+            )
+        return queryset
 
 
 class CheckoutView(APIView):
@@ -58,7 +70,7 @@ class CheckoutView(APIView):
                 request.user,
                 frontend_url=frontend_url,
             )
-        except EmptyCartError as exc:
+        except (EmptyCartError, CheckoutError) as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PaymentConfigurationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

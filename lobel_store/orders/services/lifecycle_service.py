@@ -1,0 +1,212 @@
+from django.db import transaction
+from django.db.models import F
+from django.utils import timezone
+
+from orders.models import Order, OrderStatusHistory
+from products.models import Product, ProductVariant
+
+
+class OrderTransitionError(Exception):
+    code = "invalid_order_transition"
+
+    def __init__(self, message, code=None):
+        super().__init__(message)
+        if code:
+            self.code = code
+
+
+ALLOWED_ORDER_TRANSITIONS = {
+    Order.STATUS_CART: {
+        Order.STATUS_PENDING_PAYMENT, Order.STATUS_PAID, Order.STATUS_CANCELLED,
+    },
+    Order.STATUS_PENDING_PAYMENT: {Order.STATUS_PAID, Order.STATUS_CANCELLED},
+    Order.STATUS_PAID: {
+        Order.STATUS_PREPARING, Order.STATUS_CANCELLED, Order.STATUS_REFUND_PENDING,
+    },
+    Order.STATUS_PREPARING: {
+        Order.STATUS_SHIPPED, Order.STATUS_CANCELLED, Order.STATUS_REFUND_PENDING,
+    },
+    Order.STATUS_SHIPPED: {Order.STATUS_DELIVERED, Order.STATUS_REFUND_PENDING},
+    Order.STATUS_DELIVERED: {Order.STATUS_REFUND_PENDING},
+    Order.STATUS_REFUND_PENDING: {Order.STATUS_REFUNDED, Order.STATUS_REFUND_FAILED},
+    Order.STATUS_REFUND_FAILED: {Order.STATUS_REFUND_PENDING},
+}
+
+CANCELLATION_REASONS = frozenset({
+    "customer_request", "payment_expired", "out_of_stock", "fraud_suspected",
+    "operational_issue", "administrative_correction",
+})
+
+
+class OrderLifecycleService:
+    @transaction.atomic
+    def transition_order(
+        self, *, order, target_status, actor=None, reason_code="",
+        reason_note="", metadata=None, payment=None, refund_confirmed=False,
+    ):
+        order = Order.objects.select_for_update().get(pk=order.pk)
+        current = order.status
+        if current == target_status:
+            return order, False
+        if target_status not in ALLOWED_ORDER_TRANSITIONS.get(current, set()):
+            raise OrderTransitionError(
+                f"Transition {current} -> {target_status} interdite."
+            )
+        self._authorize(
+            order=order, current=current, target=target_status, actor=actor
+        )
+        self._validate(
+            order=order, target=target_status, reason_code=reason_code,
+            payment=payment, refund_confirmed=refund_confirmed,
+        )
+        now = timezone.now()
+        update_fields = ["status"]
+
+        if target_status == Order.STATUS_PAID:
+            self._consume_stock(order)
+            order.stock_consumed_at = now
+            order.paid_at = order.paid_at or now
+            order.complete = True
+            update_fields += ["stock_consumed_at", "paid_at", "complete"]
+            if payment and payment.external_transaction_id:
+                order.transaction_id = payment.external_transaction_id[:100]
+                update_fields.append("transaction_id")
+        elif target_status == Order.STATUS_PREPARING:
+            order.preparation_started_at = now
+            update_fields.append("preparation_started_at")
+        elif target_status == Order.STATUS_SHIPPED:
+            order.shipped_at = now
+            update_fields.append("shipped_at")
+        elif target_status == Order.STATUS_DELIVERED:
+            order.delivered_at = now
+            update_fields.append("delivered_at")
+        elif target_status == Order.STATUS_CANCELLED:
+            if order.stock_consumed_at and not order.stock_released_at:
+                self._release_stock(order)
+                order.stock_released_at = now
+                update_fields.append("stock_released_at")
+            order.cancelled_at = now
+            order.complete = True
+            update_fields += ["cancelled_at", "complete"]
+        elif target_status == Order.STATUS_REFUND_PENDING:
+            order.refund_requested_at = order.refund_requested_at or now
+            update_fields.append("refund_requested_at")
+        elif target_status == Order.STATUS_REFUNDED:
+            order.refunded_at = now
+            update_fields.append("refunded_at")
+
+        order._apply_status_transition(target_status)
+        order.save(update_fields=list(dict.fromkeys(update_fields)))
+        OrderStatusHistory.objects.create(
+            order=order,
+            from_status=current,
+            to_status=target_status,
+            actor=actor if getattr(actor, "is_authenticated", False) else None,
+            actor_role_snapshot=self._actor_role(actor),
+            reason_code=reason_code,
+            reason_note=(reason_note or "").strip(),
+            metadata=metadata or {},
+        )
+        return order, True
+
+    def _authorize(self, *, order, current, target, actor):
+        if actor is None:
+            return
+        is_staff = bool(actor.is_staff or actor.is_superuser)
+        is_owner = bool(order.customer_id and order.customer.user_id == actor.id)
+        if target in {
+            Order.STATUS_PREPARING, Order.STATUS_SHIPPED, Order.STATUS_DELIVERED,
+            Order.STATUS_REFUND_FAILED, Order.STATUS_REFUNDED,
+        } and not is_staff:
+            raise OrderTransitionError("Action réservée au personnel.", "forbidden")
+        if target == Order.STATUS_CANCELLED:
+            if is_staff:
+                return
+            if not is_owner or current not in {
+                Order.STATUS_CART, Order.STATUS_PENDING_PAYMENT
+            }:
+                raise OrderTransitionError("Commande non annulable.", "order_not_cancellable")
+        elif target == Order.STATUS_REFUND_PENDING:
+            if not (is_staff or is_owner):
+                raise OrderTransitionError("Remboursement interdit.", "refund_not_allowed")
+        elif not is_staff and not is_owner:
+            raise OrderTransitionError("Action interdite.", "forbidden")
+
+    def _validate(self, *, order, target, reason_code, payment, refund_confirmed):
+        if target == Order.STATUS_PENDING_PAYMENT:
+            if not order.snapshot_at or order.total_amount is None or not order.currency:
+                raise OrderTransitionError("Snapshots de checkout incomplets.")
+            if not order.items.exists():
+                raise OrderTransitionError("Commande vide.")
+        elif target == Order.STATUS_PAID:
+            if payment is None or payment.order_id != order.id or payment.status != "completed":
+                raise OrderTransitionError("Paiement non vérifié.", "payment_not_verified")
+            if (
+                (order.total_amount is not None and payment.amount != order.total_amount)
+                or payment.currency != order.currency
+            ):
+                raise OrderTransitionError("Montant ou devise incohérent.", "payment_not_verified")
+            if order.stock_consumed_at:
+                raise OrderTransitionError("Stock déjà consommé.")
+        elif target == Order.STATUS_PREPARING and not order.stock_consumed_at:
+            raise OrderTransitionError("Stock non consommé.", "stock_not_consumed")
+        elif target == Order.STATUS_CANCELLED:
+            if reason_code not in CANCELLATION_REASONS:
+                raise OrderTransitionError("Motif d'annulation obligatoire.")
+        elif target == Order.STATUS_REFUND_PENDING:
+            if not order.stock_consumed_at:
+                raise OrderTransitionError("Commande non payée.", "order_not_paid")
+        elif target == Order.STATUS_REFUNDED and not refund_confirmed:
+            raise OrderTransitionError(
+                "Une confirmation technique est obligatoire.", "refund_not_allowed"
+            )
+
+    def _consume_stock(self, order):
+        items, variants = self._locked_items_and_variants(order)
+        for item in items:
+            variant = variants[item.variant_id]
+            if variant.product_id != item.product_id:
+                raise OrderTransitionError("Variante incohérente.")
+            if not variant.product.is_active or not variant.is_active:
+                raise OrderTransitionError("Produit ou variante inactif.")
+            if variant.stock < item.quantity:
+                raise OrderTransitionError(
+                    f"Stock insuffisant pour la variante {variant.id}.", "insufficient_stock"
+                )
+            ProductVariant.objects.filter(pk=variant.pk).update(
+                stock=F("stock") - item.quantity
+            )
+            Product.objects.filter(pk=variant.product_id).update(
+                sales_count=F("sales_count") + item.quantity
+            )
+
+    def _release_stock(self, order):
+        items, variants = self._locked_items_and_variants(order)
+        for item in items:
+            ProductVariant.objects.filter(pk=variants[item.variant_id].pk).update(
+                stock=F("stock") + item.quantity
+            )
+
+    def _locked_items_and_variants(self, order):
+        items = list(order.items.select_for_update().order_by("variant_id", "id"))
+        if not items or any(item.variant_id is None for item in items):
+            raise OrderTransitionError("Ligne sans variante exploitable.")
+        variants = {
+            variant.id: variant
+            for variant in ProductVariant.objects.select_for_update()
+            .select_related("product")
+            .filter(id__in=sorted({item.variant_id for item in items}))
+            .order_by("id")
+        }
+        if len(variants) != len({item.variant_id for item in items}):
+            raise OrderTransitionError("Variante introuvable.")
+        return items, variants
+
+    def _actor_role(self, actor):
+        if actor is None:
+            return "system"
+        if actor.is_superuser:
+            return "admin"
+        if actor.is_staff:
+            return "staff"
+        return "customer"

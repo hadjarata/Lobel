@@ -1,57 +1,61 @@
-from rest_framework import serializers
+from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
+from rest_framework import serializers
+from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import Customer
+from .services import can_authenticate_user, normalize_email
 from .validators import normalize_phone_number, validate_country_code
 
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'is_active']
+        fields = ["id", "username", "first_name", "last_name", "email", "is_active"]
 
 
 class CustomerReadSerializer(serializers.ModelSerializer):
-    """Lecture seule – list, retrieve, me."""
-
     user = UserSerializer(read_only=True)
 
     class Meta:
         model = Customer
-        fields = [
-            'id',
-            'user',
-            'country',
-            'phone_number',
-            'address',
-            'date_created',
-        ]
+        fields = ["id", "user", "country", "phone_number", "address", "date_created"]
         read_only_fields = fields
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """Inscription uniquement – POST /api/users/customers/."""
-
     email = serializers.EmailField(write_only=True)
-    password = serializers.CharField(write_only=True, min_length=6)
+    password = serializers.CharField(write_only=True)
     first_name = serializers.CharField(write_only=True, allow_blank=True, required=False)
     last_name = serializers.CharField(write_only=True, allow_blank=True, required=False)
 
     class Meta:
         model = Customer
-        fields = [
-            'email',
-            'password',
-            'first_name',
-            'last_name',
-            'country',
-            'phone_number',
-        ]
+        fields = ["email", "password", "first_name", "last_name", "country", "phone_number"]
 
     def validate_email(self, value):
+        value = normalize_email(value)
         if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("Un utilisateur avec cet email existe déjà.")
+            raise serializers.ValidationError("Cette adresse e-mail est déjà utilisée.")
         return value
+
+    def validate(self, attrs):
+        candidate = User(
+            username=attrs.get("email", ""),
+            email=attrs.get("email", ""),
+            first_name=attrs.get("first_name", ""),
+            last_name=attrs.get("last_name", ""),
+        )
+        try:
+            validate_password(attrs["password"], candidate)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"password": list(exc.messages)}) from exc
+        return attrs
 
     def validate_country(self, value):
         try:
@@ -68,38 +72,30 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(str(exc)) from exc
 
     def create(self, validated_data):
-        email = validated_data.pop('email')
-        password = validated_data.pop('password')
-        first_name = validated_data.pop('first_name', '')
-        last_name = validated_data.pop('last_name', '')
-
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name,
-            is_active=False,
-        )
-
-        return Customer.objects.create(user=user, **validated_data)
+        email = validated_data.pop("email")
+        password = validated_data.pop("password")
+        first_name = validated_data.pop("first_name", "")
+        last_name = validated_data.pop("last_name", "")
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=email, email=email, password=password,
+                    first_name=first_name, last_name=last_name, is_active=True,
+                )
+                return Customer.objects.create(user=user, **validated_data)
+        except IntegrityError as exc:
+            raise serializers.ValidationError(
+                {"email": "Cette adresse e-mail est déjà utilisée."}
+            ) from exc
 
 
 class CustomerUpdateSerializer(serializers.ModelSerializer):
-    """Mise à jour profil – PATCH /api/users/customers/{id}/."""
-
     first_name = serializers.CharField(required=False, allow_blank=True)
     last_name = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = Customer
-        fields = [
-            'first_name',
-            'last_name',
-            'country',
-            'phone_number',
-            'address',
-        ]
+        fields = ["first_name", "last_name", "country", "phone_number", "address"]
 
     def validate_country(self, value):
         try:
@@ -109,29 +105,24 @@ class CustomerUpdateSerializer(serializers.ModelSerializer):
 
     def validate_phone_number(self, value):
         if not value:
-            return ''
+            return ""
         try:
             return normalize_phone_number(value)
         except ValueError as exc:
             raise serializers.ValidationError(str(exc)) from exc
 
     def update(self, instance, validated_data):
-        first_name = validated_data.pop('first_name', None)
-        last_name = validated_data.pop('last_name', None)
-
-        user = instance.user
-        user_fields = []
-
+        first_name = validated_data.pop("first_name", None)
+        last_name = validated_data.pop("last_name", None)
+        fields = []
         if first_name is not None:
-            user.first_name = first_name.strip()
-            user_fields.append('first_name')
+            instance.user.first_name = first_name.strip()
+            fields.append("first_name")
         if last_name is not None:
-            user.last_name = last_name.strip()
-            user_fields.append('last_name')
-
-        if user_fields:
-            user.save(update_fields=user_fields)
-
+            instance.user.last_name = last_name.strip()
+            fields.append("last_name")
+        if fields:
+            instance.user.save(update_fields=fields)
         return super().update(instance, validated_data)
 
 
@@ -146,10 +137,8 @@ class PasswordResetSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(write_only=True)
 
     def validate(self, data):
-        if data['password'] != data['confirm_password']:
+        if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError("Les mots de passe ne correspondent pas.")
-        if len(data['password']) < 6:
-            raise serializers.ValidationError("Le mot de passe doit contenir au moins 6 caractères.")
         return data
 
 
@@ -158,6 +147,59 @@ class VerifyEmailSerializer(serializers.Serializer):
     token = serializers.CharField()
 
 
-# Alias rétrocompatibilité
+class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        identifier = normalize_email(attrs.get(self.username_field, ""))
+        user = authenticate(
+            request=self.context.get("request"), username=identifier,
+            password=attrs.get("password"),
+        )
+        if not can_authenticate_user(user):
+            raise AuthenticationFailed("Identifiants invalides ou compte indisponible.")
+        refresh = self.get_token(user)
+        refresh["token_version"] = user.customer.token_version
+        return {"refresh": str(refresh), "access": str(refresh.access_token)}
+
+
+class AccountTokenRefreshSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        token = RefreshToken(attrs["refresh"])
+        try:
+            user = User.objects.select_related("customer").get(pk=token.get("user_id"))
+        except User.DoesNotExist as exc:
+            raise InvalidToken("Token invalide.") from exc
+        if not can_authenticate_user(user) or token.get("token_version") != user.customer.token_version:
+            raise AuthenticationFailed("Compte indisponible.")
+        data = super().validate(attrs)
+        if "refresh" in data:
+            rotated = RefreshToken(data["refresh"])
+            rotated["token_version"] = user.customer.token_version
+            data["refresh"] = str(rotated)
+            data["access"] = str(rotated.access_token)
+        return data
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        if not user.check_password(attrs["current_password"]):
+            raise serializers.ValidationError({"current_password": "Mot de passe incorrect."})
+        if attrs["password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError({"confirm_password": "Les mots de passe ne correspondent pas."})
+        try:
+            validate_password(attrs["password"], user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"password": list(exc.messages)}) from exc
+        return attrs
+
+
 CustomerSerializer = CustomerReadSerializer
 EmailVerificationSerializer = VerifyEmailSerializer

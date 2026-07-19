@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin, messages
+from django.conf import settings
 from django.utils.html import format_html
 from .models import (
     Category,
@@ -10,6 +11,29 @@ from .models import (
     Color,
     Size
 )
+from .services import CatalogueArchiveService
+
+archive_service = CatalogueArchiveService()
+
+
+def archive_selected_products(modeladmin, request, queryset):
+    for product in queryset:
+        archive_service.archive_product(product)
+
+
+def reactivate_selected_products(modeladmin, request, queryset):
+    for product in queryset:
+        archive_service.reactivate_product(product)
+
+
+def archive_selected_categories(modeladmin, request, queryset):
+    for category in queryset:
+        archive_service.archive_category(category)
+
+
+def reactivate_selected_categories(modeladmin, request, queryset):
+    for category in queryset:
+        archive_service.reactivate_category(category)
 
 
 # =========================
@@ -20,6 +44,35 @@ class ProductMediaInline(admin.TabularInline):
     extra = 1
     fields = ('media_type', 'file', 'order')
     ordering = ('order',)
+    readonly_fields = ('format', 'mime_type', 'size_bytes', 'width', 'height', 'duration_seconds', 'checksum')
+    can_delete = False
+
+
+class ProductMediaAdminForm(forms.ModelForm):
+    class Meta:
+        model = ProductMedia
+        fields = "__all__"
+
+    def clean(self):
+        cleaned = super().clean()
+        product, media_type = cleaned.get("product"), cleaned.get("media_type")
+        if product and media_type and not self.instance.pk:
+            maximum = settings.MAX_PRODUCT_IMAGES if media_type == "image" else settings.MAX_PRODUCT_VIDEOS
+            if product.media_files.filter(media_type=media_type, is_active=True).count() >= maximum:
+                raise forms.ValidationError("media_quota_exceeded")
+        return cleaned
+
+
+@admin.register(ProductMedia)
+class ProductMediaAdmin(admin.ModelAdmin):
+    form = ProductMediaAdminForm
+    list_display = ("id", "product", "media_type", "format", "size_bytes", "width", "height", "duration_seconds", "is_active", "created_at")
+    readonly_fields = ("format", "mime_type", "size_bytes", "width", "height", "duration_seconds", "checksum", "created_at")
+    list_filter = ("media_type", "format", "is_active")
+    list_select_related = ("product",)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 # =========================
@@ -28,7 +81,8 @@ class ProductMediaInline(admin.TabularInline):
 class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
     extra = 1
-    fields = ('color', 'size', 'stock')
+    fields = ('color', 'size', 'stock', 'is_active')
+    can_delete = False
 
 
 # =========================
@@ -36,9 +90,14 @@ class ProductVariantInline(admin.TabularInline):
 # =========================
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'date_created')
+    list_display = ('name', 'is_active', 'date_created')
+    list_filter = ('is_active',)
+    actions = [archive_selected_categories, reactivate_selected_categories]
     search_fields = ('name',)
     ordering = ('-date_created',)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 # =========================
@@ -142,16 +201,18 @@ class ProductAdmin(admin.ModelAdmin):
         'category',
         'price',
         'sales_count',
+        'is_active',
         'date_created'
     )
 
-    list_filter = ('category', 'date_created')
+    list_filter = ('category', 'is_active', 'date_created')
+    list_select_related = ('category',)
     search_fields = ('name', 'description')
     ordering = ('-date_created',)
     readonly_fields = ('date_created',)
+    actions = [archive_selected_products, reactivate_selected_products]
 
     inlines = [
-        ProductMediaInline,
         ProductVariantInline
     ]
 
@@ -160,7 +221,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('name', 'category', 'description')  # 🔥 AJOUT
         }),
         ('Prix & ventes', {
-            'fields': ('price', 'sales_count')
+            'fields': ('price', 'sales_count', 'is_active')
         }),
         ('Système', {
             'fields': ('date_created',),
@@ -179,6 +240,9 @@ class ProductAdmin(admin.ModelAdmin):
             except (ValueError, TypeError):
                 pass
         return initial
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

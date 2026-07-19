@@ -25,7 +25,7 @@ class OrderWriteProtectionTests(APITestCase):
     def test_client_lists_and_retrieves_only_own_orders(self):
         response = self.client.get("/api/orders/orders/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual([entry["id"] for entry in response.data], [self.order.id])
+        self.assertEqual([entry["id"] for entry in response.data["results"]], [self.order.id])
 
         own_response = self.client.get(f"/api/orders/orders/{self.order.id}/")
         self.assertEqual(own_response.status_code, status.HTTP_200_OK)

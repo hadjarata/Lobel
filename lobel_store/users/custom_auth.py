@@ -2,6 +2,8 @@ from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
+from .services import can_authenticate_user
+
 User = get_user_model()
 
 class EmailBackend(BaseBackend):
@@ -20,13 +22,13 @@ class EmailBackend(BaseBackend):
         try:
             # Check if username looks like an email
             if '@' in username:
-                user = User.objects.get(Q(email=username) | Q(username=username))
+                user = User.objects.get(Q(email__iexact=username) | Q(username__iexact=username))
             else:
-                user = User.objects.get(Q(username=username) | Q(email=username))
+                user = User.objects.get(Q(username__iexact=username) | Q(email__iexact=username))
                 
-            if user.check_password(password):
+            if user.check_password(password) and can_authenticate_user(user):
                 return user
-        except User.DoesNotExist:
+        except (User.DoesNotExist, User.MultipleObjectsReturned):
             return None
             
     def get_user(self, user_id):

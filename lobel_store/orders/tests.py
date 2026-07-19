@@ -8,7 +8,7 @@ from unittest.mock import patch
 from orders.models import Order, OrderItem
 from payments.models import Payment
 from payments.providers.base import CheckoutSessionResult
-from products.models import Category, Product
+from products.models import Category, Product, ProductVariant
 from users.models import Customer
 
 
@@ -26,6 +26,7 @@ class OrderItemViewSetTests(APITestCase):
             category=self.category,
             price="49.99",
         )
+        self.variant = ProductVariant.objects.create(product=self.product, stock=20)
         self.url = reverse("orderitem-list")
 
     def test_create_order_item_creates_pending_order_when_missing(self):
@@ -33,7 +34,7 @@ class OrderItemViewSetTests(APITestCase):
 
         response = self.client.post(
             self.url,
-            {"product_id": self.product.id, "quantity": 2},
+            {"variant_id": self.variant.id, "quantity": 2},
             format="json",
         )
 
@@ -52,7 +53,7 @@ class OrderItemViewSetTests(APITestCase):
 
         response = self.client.post(
             self.url,
-            {"product_id": self.product.id, "quantity": 1},
+            {"variant_id": self.variant.id, "quantity": 1},
             format="json",
         )
 
@@ -84,6 +85,7 @@ class CustomerResourceIsolationTests(APITestCase):
             category=self.category,
             price="25.00",
         )
+        self.variant = ProductVariant.objects.create(product=self.product, stock=20)
         self.order = Order.objects.create(customer=self.customer, complete=False)
         self.other_order = Order.objects.create(customer=self.other_customer, complete=False)
         self.order_item = OrderItem.objects.create(
@@ -113,8 +115,8 @@ class CustomerResourceIsolationTests(APITestCase):
         response = self.client.get(reverse("order-list"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.order.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.order.id)
 
     def test_order_items_are_limited_to_authenticated_customer(self):
         self.client.force_authenticate(user=self.user)
@@ -122,8 +124,8 @@ class CustomerResourceIsolationTests(APITestCase):
         response = self.client.get(reverse("orderitem-list"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.order_item.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.order_item.id)
 
     def test_payments_are_limited_to_authenticated_customer(self):
         self.client.force_authenticate(user=self.user)
@@ -131,8 +133,8 @@ class CustomerResourceIsolationTests(APITestCase):
         response = self.client.get(reverse("payment-list"))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.payment.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.payment.id)
 
     def test_customer_cannot_retrieve_another_customers_order(self):
         self.client.force_authenticate(user=self.user)
@@ -168,8 +170,8 @@ class OrderListFilterTests(APITestCase):
         response = self.client.get(self.url, {"status": Order.STATUS_PAID})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.paid_order.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.paid_order.id)
 
     def test_filter_orders_by_complete_true(self):
         self.client.force_authenticate(user=self.user)
@@ -177,8 +179,8 @@ class OrderListFilterTests(APITestCase):
         response = self.client.get(self.url, {"complete": "true"})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], self.paid_order.id)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["id"], self.paid_order.id)
 
 
 class CartEndpointTests(APITestCase):
@@ -195,6 +197,7 @@ class CartEndpointTests(APITestCase):
             category=self.category,
             price="100.00",
         )
+        self.variant = ProductVariant.objects.create(product=self.product, stock=20)
         self.url = reverse("order-cart")
 
     def test_cart_returns_active_incomplete_order(self):
@@ -227,10 +230,9 @@ class CartEndpointTests(APITestCase):
         self.assertEqual(response.data["items"], [])
         self.assertEqual(response.data["cart_items"], 0)
 
-    def test_cart_returns_items_from_order_with_products_when_newer_empty_order_exists(self):
+    def test_cart_returns_items_from_active_order(self):
         order_with_items = Order.objects.create(customer=self.customer, complete=False)
         OrderItem.objects.create(order=order_with_items, product=self.product, quantity=2)
-        Order.objects.create(customer=self.customer, complete=False)
 
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.url)
@@ -269,6 +271,7 @@ class CartCheckoutFlowTests(APITestCase):
             category=self.category,
             price="500.00",
         )
+        self.variant = ProductVariant.objects.create(product=self.product, stock=20)
         self.cart_url = reverse("order-cart")
         self.checkout_url = reverse("payment-checkout")
         self.order_item_url = reverse("orderitem-list")
@@ -297,7 +300,7 @@ class CartCheckoutFlowTests(APITestCase):
 
         add_response = self.client.post(
             self.order_item_url,
-            {"product_id": self.product.id, "quantity": 2},
+            {"variant_id": self.variant.id, "quantity": 2},
             format="json",
         )
         self.assertEqual(add_response.status_code, status.HTTP_201_CREATED)

@@ -52,6 +52,7 @@ class CheckoutViewTests(APITestCase):
             category=self.category,
             price="500.00",
         )
+        self.variant = ProductVariant.objects.create(product=self.product, stock=20)
         self.url = reverse("payment-checkout")
 
     def _create_cart(self, quantity=2):
@@ -247,6 +248,7 @@ class PaymentWebhookViewTests(APITestCase):
         self.payment.processed_at = timezone.now()
         self.payment.save(update_fields=["status", "external_transaction_id", "processed_at"])
         self.order.status = Order.STATUS_PAID
+        self.order._status_transition_allowed = True
         self.order.complete = True
         self.order.paid_at = timezone.now()
         self.order.save(update_fields=["status", "complete", "paid_at"])
@@ -532,6 +534,10 @@ class ConcurrentStockFulfillmentTests(APITestCase):
             password="password123",
         )
         self.customer = Customer.objects.create(user=self.user, country="SN")
+        self.other_user = User.objects.create_user(
+            username="stock-other@example.com", email="stock-other@example.com"
+        )
+        self.other_customer = Customer.objects.create(user=self.other_user, country="SN")
         self.category = Category.objects.create(name="Limited")
         self.product = Product.objects.create(
             name="Limited Item",
@@ -553,7 +559,7 @@ class ConcurrentStockFulfillmentTests(APITestCase):
             currency="XOF",
         )
 
-        self.order_two = Order.objects.create(customer=self.customer, complete=False)
+        self.order_two = Order.objects.create(customer=self.other_customer, complete=False)
         OrderItem.objects.create(order=self.order_two, product=self.product, quantity=1)
         self.payment_two = Payment.objects.create(
             order=self.order_two,

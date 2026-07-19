@@ -6,7 +6,12 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'lobel_store.settings')
+    default_settings = (
+        'lobel_store.settings.test'
+        if len(sys.argv) > 1 and sys.argv[1] == 'test'
+        else 'lobel_store.settings.development'
+    )
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', default_settings)
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

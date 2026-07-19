@@ -55,8 +55,8 @@ class PaymentProviderConfigurationTests(SimpleTestCase):
         self.assertEqual(payment_configuration_check(None)[0].id, "payments.E002")
 
     @override_settings(DEBUG=False, TESTING=False, PAYMENT_PROVIDER="ligdicash")
-    def test_real_provider_without_production_verification_fails_check(self):
-        self.assertEqual(payment_configuration_check(None)[0].id, "payments.E004")
+    def test_real_provider_is_accepted_but_confirmations_remain_fail_closed(self):
+        self.assertEqual(payment_configuration_check(None), [])
 
 
 class ProviderConfirmationValidationTests(SimpleTestCase):

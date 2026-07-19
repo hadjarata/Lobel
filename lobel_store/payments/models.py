@@ -1,10 +1,13 @@
 from django.db import models
 
 # Create your models here.
-from orders.models import Order
+from orders.models import (
+    CommercialDataDeletionError, Order, ProtectedCommercialQuerySet,
+)
 
 
 class Payment(models.Model):
+    objects = ProtectedCommercialQuerySet.as_manager()
     PROVIDERS = (
         ('manual', 'Manual'),
         ('mock', 'Mock'),
@@ -25,7 +28,7 @@ class Payment(models.Model):
         ('failed', 'Failed'),
     )
 
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payments')
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -40,8 +43,14 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.status} - {self.amount} for Order {self.order.id}"
 
+    def delete(self, *args, **kwargs):
+        raise CommercialDataDeletionError(
+            "Un paiement ne peut pas être supprimé."
+        )
+
 
 class PaymentWebhookEvent(models.Model):
+    objects = ProtectedCommercialQuerySet.as_manager()
     deduplication_key = models.CharField(max_length=255, unique=True)
     event_type = models.CharField(max_length=100)
     session_token = models.CharField(max_length=255, blank=True)
@@ -60,3 +69,8 @@ class PaymentWebhookEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} - {self.deduplication_key}"
+
+    def delete(self, *args, **kwargs):
+        raise CommercialDataDeletionError(
+            "Une preuve de paiement ne peut pas être supprimée."
+        )

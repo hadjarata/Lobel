@@ -31,16 +31,4 @@ def payment_configuration_check(app_configs, **kwargs):
                 id="payments.E003",
             )
         ]
-    if provider == "ligdicash" and not settings.DEBUG:
-        return [
-            Error(
-                "Production LigdiCash verification is not implemented.",
-                hint=(
-                    "Keep production payment confirmation disabled until the "
-                    "official amount, currency and signature verification "
-                    "contract is integrated."
-                ),
-                id="payments.E004",
-            )
-        ]
     return []

@@ -43,7 +43,7 @@ class PaymentWriteProtectionTests(APITestCase):
         response = self.client.get("/api/payments/payments/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            [entry["id"] for entry in response.data],
+            [entry["id"] for entry in response.data["results"]],
             [self.payment.id],
         )
 

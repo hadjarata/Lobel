@@ -42,9 +42,20 @@ class ProductMediaSerializer(serializers.ModelSerializer):
             'file',
             'file_url',
             'order',
-            'created_at'
+            'created_at',
+            'format',
+            'mime_type',
+            'size_bytes',
+            'width',
+            'height',
+            'duration_seconds',
+            'checksum',
+            'is_active',
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = [
+            'created_at', 'format', 'mime_type', 'size_bytes', 'width', 'height',
+            'duration_seconds', 'checksum', 'is_active',
+        ]
 
     def get_file_url(self, obj):
         """Retourne l'URL complète du fichier"""
@@ -62,7 +73,7 @@ class ProductMediaSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description', 'date_created']
+        fields = ['id', 'name', 'description', 'is_active', 'date_created']
 
 
 # =========================
@@ -74,7 +85,7 @@ class ProductVariantSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductVariant
-        fields = ['id', 'color', 'size', 'stock']
+        fields = ['id', 'color', 'size', 'stock', 'is_active', 'sku', 'price']
 
 
 # =========================
@@ -103,6 +114,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'description',
             'price',
             'sales_count',
+            'is_active',
             'date_created',
 
             'collections',  # 🔥 AJOUT IMPORTANT
@@ -131,6 +143,129 @@ class ProductSerializer(serializers.ModelSerializer):
         return None
 
 
+def _absolute_file_url(serializer, media):
+    if not media or not media.file:
+        return None
+    request = serializer.context.get("request")
+    return request.build_absolute_uri(media.file.url) if request else media.file.url
+
+
+class PublicMediaSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductMedia
+        fields = ["id", "media_type", "url", "order", "width", "height", "duration_seconds"]
+
+    def get_url(self, obj):
+        return _absolute_file_url(self, obj)
+
+
+class ProductListSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    collections = serializers.SerializerMethodField()
+    variants = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    is_available = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "name", "price", "sales_count", "date_created", "category",
+            "collections", "variants", "image", "is_available",
+        ]
+
+    def get_collections(self, obj):
+        return [item.pk for item in getattr(obj, "prefetched_collections", ())]
+
+    def get_variants(self, obj):
+        return ProductVariantSerializer(
+            getattr(obj, "prefetched_active_variants", ()), many=True, context=self.context
+        ).data
+
+    def get_image(self, obj):
+        media = next(iter(getattr(obj, "prefetched_active_media", ())), None)
+        return _absolute_file_url(self, media)
+
+
+class ProductDetailSerializer(serializers.ModelSerializer):
+    category = CategorySerializer(read_only=True)
+    collections = serializers.SerializerMethodField()
+    media_files = serializers.SerializerMethodField()
+    variants = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    video = serializers.SerializerMethodField()
+    is_available = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            "id", "name", "category", "description", "price", "sales_count",
+            "is_active", "date_created", "collections", "media_files", "variants",
+            "image", "video", "is_available",
+        ]
+
+    def _media(self, obj, media_type):
+        return next(
+            (item for item in getattr(obj, "prefetched_active_media", ()) if item.media_type == media_type),
+            None,
+        )
+
+    def get_collections(self, obj):
+        return [item.pk for item in getattr(obj, "prefetched_collections", ())]
+
+    def get_media_files(self, obj):
+        return PublicMediaSerializer(
+            getattr(obj, "prefetched_active_media", ()), many=True, context=self.context
+        ).data
+
+    def get_variants(self, obj):
+        return ProductVariantSerializer(
+            getattr(obj, "prefetched_active_variants", ()), many=True, context=self.context
+        ).data
+
+    def get_image(self, obj):
+        return _absolute_file_url(self, self._media(obj, "image"))
+
+    def get_video(self, obj):
+        return _absolute_file_url(self, self._media(obj, "video"))
+
+
+class ProductMediaCreateSerializer(serializers.Serializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    media_type = serializers.ChoiceField(choices=ProductMedia.MEDIA_TYPES)
+    file = serializers.FileField()
+    order = serializers.IntegerField(min_value=0, default=0)
+
+    def create(self, validated_data):
+        from .media_services import CatalogMediaService
+        return CatalogMediaService.add(
+            product=validated_data["product"],
+            media_type=validated_data["media_type"],
+            upload=validated_data["file"],
+            order=validated_data["order"],
+            actor=self.context["request"].user,
+        )
+
+    def to_representation(self, instance):
+        return ProductMediaSerializer(instance, context=self.context).data
+
+
+class ProductMediaUpdateSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
+    def update(self, instance, validated_data):
+        from .media_services import CatalogMediaService
+        return CatalogMediaService.replace(
+            media=instance,
+            upload=validated_data["file"],
+            actor=self.context["request"].user,
+        )
+
+    def to_representation(self, instance):
+        return ProductMediaSerializer(instance, context=self.context).data
+
+
 class ProductWriteSerializer(serializers.ModelSerializer):
     """Minimal catalogue input accepted from staff users."""
 
@@ -150,6 +285,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             'category',
             'description',
             'price',
+            'is_active',
             'collections',
         ]
 
@@ -199,3 +335,14 @@ class CollectionSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.video.url)
             return obj.video.url
         return None
+
+    def validate(self, attrs):
+        from .media_validation import validate_image_upload, validate_video_upload
+        cover_type = attrs.get("cover_type", getattr(self.instance, "cover_type", Collection.COVER_TYPE_IMAGE))
+        image = attrs.get("image")
+        video = attrs.get("video")
+        if image and cover_type == Collection.COVER_TYPE_IMAGE:
+            validate_image_upload(image)
+        if video and cover_type == Collection.COVER_TYPE_VIDEO:
+            validate_video_upload(video)
+        return attrs

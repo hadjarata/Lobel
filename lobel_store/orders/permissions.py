@@ -8,6 +8,8 @@ class IsOrderOwner(BasePermission):
         return bool(
             request.user
             and request.user.is_authenticated
-            and obj.customer_id
-            and obj.customer.user_id == request.user.id
+            and (
+                request.user.is_staff
+                or (obj.customer_id and obj.customer.user_id == request.user.id)
+            )
         )

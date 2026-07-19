@@ -150,7 +150,7 @@ class LigdicashProvider(PaymentProvider):
     def _build_create_payload(self, context: CheckoutContext) -> dict[str, Any]:
         items = []
         for order_item in context.order.items.select_related("product").all():
-            unit_price = self.format_amount(order_item.product.price)
+            unit_price = self.format_amount(order_item.unit_price)
             line_total = unit_price * order_item.quantity
             items.append(
                 {

@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
@@ -33,6 +34,14 @@ class PaymentService:
         logger.info("[Payment] Payment completed received - payment_id=%s", payment.id)
 
         order = self._resolve_order(payment)
+        if order.total_amount is not None and Decimal(payment.amount) != order.total_amount:
+            raise PaymentProcessingError(
+                "Payment amount does not match the frozen order total."
+            )
+        if order.currency and payment.currency.upper() != order.currency.upper():
+            raise PaymentProcessingError(
+                "Payment currency does not match the frozen order currency."
+            )
         logger.info(
             "Order linked to payment - Payment=%s Order=%s",
             payment.id,
