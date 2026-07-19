@@ -1,4 +1,14 @@
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  backdropVariants,
+  panelVariants,
+  sheetUpVariants,
+  springModal,
+  springSheet,
+  springSnappy,
+} from '../../utils/motion';
+import { useMotionTransition } from '../../utils/useMotionTransition';
 import {
   formatDate,
   formatDateTime,
@@ -9,6 +19,9 @@ import { getProductImageUrl } from '../../utils/mediaUtils';
 
 const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId = null }) => {
   const [selectedOrderId, setSelectedOrderId] = useState(initialSelectedOrderId);
+  const [isMobileSheet, setIsMobileSheet] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
+  );
   const selectedOrder = orders.find((order) => order.id === selectedOrderId);
 
   useEffect(() => {
@@ -16,6 +29,16 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
       setSelectedOrderId(initialSelectedOrderId);
     }
   }, [initialSelectedOrderId]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const syncMobileSheet = () => setIsMobileSheet(mediaQuery.matches);
+
+    syncMobileSheet();
+    mediaQuery.addEventListener('change', syncMobileSheet);
+
+    return () => mediaQuery.removeEventListener('change', syncMobileSheet);
+  }, []);
 
   useEffect(() => {
     if (!selectedOrder) {
@@ -50,6 +73,12 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
   const closeOrderDetail = () => {
     setSelectedOrderId(null);
   };
+
+  const overlayTransition = useMotionTransition(springModal);
+  const sheetTransition = useMotionTransition(springSheet);
+  const panelTransition = useMotionTransition(springSnappy);
+  const detailVariants = isMobileSheet ? sheetUpVariants : panelVariants;
+  const detailTransition = isMobileSheet ? sheetTransition : panelTransition;
 
   if (loading) {
     return (
@@ -131,15 +160,30 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
             })}
           </ul>
 
-          {selectedOrder && (
-            <>
-              <button
-                type="button"
-                className="profile-order-detail-backdrop"
-                aria-label="Fermer le détail"
-                onClick={closeOrderDetail}
-              />
-              <aside className="profile-order-detail" role="dialog" aria-modal="true">
+          <AnimatePresence>
+            {selectedOrder && (
+              <>
+                <motion.button
+                  type="button"
+                  className="profile-order-detail-backdrop"
+                  aria-label="Fermer le détail"
+                  onClick={closeOrderDetail}
+                  variants={isMobileSheet ? backdropVariants : undefined}
+                  initial={isMobileSheet ? 'initial' : false}
+                  animate={isMobileSheet ? 'animate' : undefined}
+                  exit={isMobileSheet ? 'exit' : undefined}
+                  transition={isMobileSheet ? overlayTransition : undefined}
+                />
+                <motion.aside
+                  className="profile-order-detail"
+                  role="dialog"
+                  aria-modal="true"
+                  variants={detailVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={detailTransition}
+                >
                 <div className="profile-order-detail-head">
                   <button
                     type="button"
@@ -200,9 +244,10 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
                     );
                   })}
                 </ul>
-              </aside>
-            </>
-          )}
+                </motion.aside>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </section>

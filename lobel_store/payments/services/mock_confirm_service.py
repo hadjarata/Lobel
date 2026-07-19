@@ -5,6 +5,12 @@ from django.db import transaction
 from orders.services.order_service import InsufficientStockError, OrderFulfillmentError
 from payments.models import Payment
 from payments.providers import get_payment_provider
+from payments.providers.base import (
+    PaymentConfigurationError,
+    PaymentInvalidResponseError,
+    mock_provider_is_allowed,
+    validate_provider_confirmation,
+)
 from payments.services.payment_service import PaymentService
 
 logger = logging.getLogger(__name__)
@@ -28,6 +34,11 @@ class MockConfirmService:
 
     @transaction.atomic
     def confirm_payment(self, *, user, payment_id: int) -> Payment:
+        if not mock_provider_is_allowed():
+            raise PaymentConfigurationError(
+                "Mock payment confirmation is forbidden when DEBUG=False."
+            )
+
         payment = (
             Payment.objects.select_for_update()
             .filter(
@@ -52,10 +63,18 @@ class MockConfirmService:
         if not payment.session_token:
             raise MockConfirmError("Session de paiement mock invalide.")
 
-        verification = provider.verify_payment(payment.session_token)
-
-        if verification.status != "completed":
-            raise MockConfirmError("Le paiement mock n'a pas pu être confirmé.")
+        verification = provider.verify_payment(
+            payment.session_token,
+            payment=payment,
+        )
+        try:
+            validate_provider_confirmation(
+                payment=payment,
+                result=verification,
+                require_signature=False,
+            )
+        except PaymentInvalidResponseError as exc:
+            raise MockConfirmError(str(exc)) from exc
 
         payment.status = "completed"
         if verification.external_transaction_id:

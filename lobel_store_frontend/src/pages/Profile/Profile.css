@@ -274,19 +274,6 @@
 
 .profile-main {
   min-width: 0;
-  animation: profile-panel-in 0.22s ease;
-}
-
-@keyframes profile-panel-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Panels */
@@ -1027,7 +1014,6 @@
     padding: 0;
     background: rgba(61, 45, 41, 0.45);
     cursor: pointer;
-    animation: profile-fade-in 0.2s ease;
   }
 
   .profile-order-detail {
@@ -1039,7 +1025,6 @@
     border-radius: 16px 16px 0 0;
     border-bottom: none;
     box-shadow: 0 -8px 32px rgba(61, 45, 41, 0.18);
-    animation: profile-sheet-up 0.28s ease;
   }
 
   .profile-order-detail-head {
@@ -1058,26 +1043,6 @@
 
 body.profile-order-detail-open {
   overflow: hidden;
-}
-
-@keyframes profile-fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes profile-sheet-up {
-  from {
-    transform: translateY(100%);
-  }
-
-  to {
-    transform: translateY(0);
-  }
 }
 
 @media (min-width: 961px) {

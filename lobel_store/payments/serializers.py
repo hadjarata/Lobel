@@ -2,8 +2,8 @@ from rest_framework import serializers
 from .models import Payment
 from orders.serializers import OrderSerializer
 
-class PaymentSerializer(serializers.ModelSerializer):
-    order = OrderSerializer()  # nested order info
+class PaymentReadSerializer(serializers.ModelSerializer):
+    order = OrderSerializer(read_only=True)  # nested order info
 
     class Meta:
         model = Payment
@@ -21,3 +21,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             'processed_at',
             'date_paid',
         ]
+        read_only_fields = fields
+
+
+# Backwards-compatible import used by existing views and tests.
+PaymentSerializer = PaymentReadSerializer

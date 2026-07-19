@@ -26,12 +26,6 @@
   max-width: 400px;
   margin: 0 auto;
   border-radius: 0;
-  transform: translateX(-100%);
-  transition: transform 0.3s ease;
-}
-
-.filter-sidebar.mobile.open {
-  transform: translateX(0);
 }
 
 .filter-overlay {
@@ -42,6 +36,9 @@
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   z-index: 999;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 /* Header */

@@ -1,6 +1,7 @@
 import logging
 
 from django.utils.decorators import method_decorator
+from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions, status, viewsets
 from rest_framework.response import Response
@@ -13,8 +14,10 @@ from payments.providers.base import (
     PaymentCommunicationError,
     PaymentConfigurationError,
     PaymentInvalidResponseError,
+    mock_provider_is_allowed,
 )
 from payments.serializers import PaymentSerializer
+from payments.permissions import IsPaymentOwner
 from payments.services.checkout_service import CheckoutService, EmptyCartError
 from payments.services.mock_confirm_service import (
     MockConfirmError,
@@ -27,10 +30,10 @@ from payments.services.webhook_service import PaymentWebhookService
 logger = logging.getLogger(__name__)
 
 
-class PaymentViewSet(viewsets.ModelViewSet):
+class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Payment.objects.all()
     serializer_class = PaymentSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsPaymentOwner]
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
@@ -42,7 +45,6 @@ class CheckoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        service = CheckoutService()
         frontend_url = (
             request.data.get('frontend_url')
             or request.data.get('frontendUrl')
@@ -51,6 +53,7 @@ class CheckoutView(APIView):
         )
 
         try:
+            service = CheckoutService()
             checkout_data = service.create_checkout_session(
                 request.user,
                 frontend_url=frontend_url,
@@ -78,10 +81,15 @@ class PaymentWebhookView(APIView):
 
     def post(self, request):
         content_type = request.headers.get("Content-Type")
-        service = PaymentWebhookService()
 
         try:
+            service = PaymentWebhookService()
             result = service.process(request._request.body, content_type)
+        except PaymentConfigurationError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
         except (InsufficientStockError, OrderFulfillmentError) as exc:
             logger.error("[Payment] fulfillment failed during webhook: %s", exc)
             return Response({"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -102,6 +110,15 @@ class MockPaymentConfirmView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        configured_provider = str(
+            getattr(settings, "PAYMENT_PROVIDER", "") or ""
+        ).strip().lower()
+        if not mock_provider_is_allowed() or configured_provider != "mock":
+            return Response(
+                {"detail": "Mock payment confirmation is unavailable."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
         payment_id = request.data.get("paymentId") or request.data.get("payment_id")
 
         if payment_id is None:
@@ -144,6 +161,8 @@ class MockPaymentConfirmView(APIView):
             logger.error("[Payment] mock confirm fulfillment failed: %s", exc)
             return Response({"detail": str(exc)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except MockConfirmError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except PaymentConfigurationError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(

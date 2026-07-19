@@ -1,6 +1,7 @@
 import json
 import logging
 import secrets
+from decimal import Decimal
 
 from django.conf import settings
 
@@ -40,13 +41,24 @@ class MockProvider(PaymentProvider):
             order_reference=context.order_reference,
         )
 
-    def verify_payment(self, session_token: str) -> PaymentVerificationResult:
+    def verify_payment(
+        self,
+        session_token: str,
+        *,
+        payment=None,
+    ) -> PaymentVerificationResult:
         logger.info("[Payment] mock payment verified - token=%s", session_token)
 
         return PaymentVerificationResult(
             status="completed",
             response_code="00",
             external_transaction_id=f"MOCK-{session_token}",
+            provider=self.provider_name,
+            provider_reference=payment.order_reference if payment else None,
+            verified_amount=Decimal(payment.amount) if payment else None,
+            verified_currency=payment.currency if payment else None,
+            signature_verified=True,
+            verification_implemented=payment is not None,
         )
 
     def parse_webhook(self, raw_body: bytes, content_type: str | None) -> dict:

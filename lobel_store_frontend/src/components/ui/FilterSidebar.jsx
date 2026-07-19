@@ -1,4 +1,12 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  backdropVariants,
+  slideFromLeftVariants,
+  springModal,
+  springSheet,
+} from '../../utils/motion';
+import { useMotionTransition } from '../../utils/useMotionTransition';
 import './FilterSidebar.css';
 
 const FilterSidebar = ({ 
@@ -63,22 +71,11 @@ const FilterSidebar = ({
     onFilterChange('clear', {});
   };
 
-  const sidebarClasses = `
-    filter-sidebar
-    ${isMobile ? 'mobile' : 'desktop'}
-    ${isMobile && isOpen ? 'open' : ''}
-  `;
+  const overlayTransition = useMotionTransition(springModal);
+  const panelTransition = useMotionTransition(springSheet);
 
-  if (isMobile && !isOpen) {
-    return null;
-  }
-
-  return (
+  const sidebarContent = (
     <>
-      {isMobile && (
-        <div className="filter-overlay" onClick={onClose}></div>
-      )}
-      <div className={sidebarClasses}>
         <div className="filter-header">
           <h3 className="filter-title">Filtres</h3>
           <div className="filter-actions">
@@ -310,8 +307,41 @@ const FilterSidebar = ({
             )}
           </div>
         </div>
-      </div>
-    </>
+      </>
+  );
+
+  if (!isMobile) {
+    return <div className="filter-sidebar desktop">{sidebarContent}</div>;
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.button
+            type="button"
+            className="filter-overlay"
+            aria-label="Fermer les filtres"
+            onClick={onClose}
+            variants={backdropVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={overlayTransition}
+          />
+          <motion.div
+            className="filter-sidebar mobile open"
+            variants={slideFromLeftVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={panelTransition}
+          >
+            {sidebarContent}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 };
 

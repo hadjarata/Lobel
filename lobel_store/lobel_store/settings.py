@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import sys
 
 import environ
 
@@ -34,6 +35,10 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-hcudt)ewvch-53g=l9iw9+rw
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
+
+# Django forces DEBUG=False while running tests. This internal flag allows
+# explicitly selected test providers without creating a production override.
+TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=[])
 
@@ -168,7 +173,9 @@ EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.console.
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='webmaster@localhost')
 FRONTEND_URL = env('FRONTEND_URL', default='http://localhost:5173')
 
-PAYMENT_PROVIDER = env('PAYMENT_PROVIDER', default='mock')
+# Explicit selection is mandatory. The mock provider is development/test only
+# and is rejected whenever DEBUG=False.
+PAYMENT_PROVIDER = env('PAYMENT_PROVIDER', default='')
 LIGDICASH_API_KEY = env('LIGDICASH_API_KEY', default='')
 LIGDICASH_API_TOKEN = env('LIGDICASH_API_TOKEN', default='')
 LIGDICASH_BASE_URL = env('LIGDICASH_BASE_URL', default='https://app.ligdicash.com')

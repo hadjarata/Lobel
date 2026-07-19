@@ -68,7 +68,12 @@ class LigdicashProvider(PaymentProvider):
         response = self._post_json(self.CREATE_PATH, payload)
         return self._parse_create_response(response, context)
 
-    def verify_payment(self, session_token: str) -> PaymentVerificationResult:
+    def verify_payment(
+        self,
+        session_token: str,
+        *,
+        payment=None,
+    ) -> PaymentVerificationResult:
         self._validate_configuration()
 
         params = parse.urlencode({"invoiceToken": session_token})
@@ -92,6 +97,10 @@ class LigdicashProvider(PaymentProvider):
             response_code=response_code,
             external_transaction_id=str(external_transaction_id) if external_transaction_id else None,
             raw=response,
+            provider=self.provider_name,
+            # Official amount, currency and signature fields are intentionally
+            # unset until the LigdiCash verification contract is integrated.
+            verification_implemented=False,
         )
 
     def parse_webhook(self, raw_body: bytes, content_type: str | None) -> dict:

@@ -1,8 +1,13 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { addToCart } from '../../api/cart';
 import { toast } from '../../components/ui/toast';
+import { springTap } from '../../utils/motion';
+import { useMotionTransition } from '../../utils/useMotionTransition';
 import './ProductCard.css';
+
+const MotionButton = motion.button;
 
 const ProductCard = ({
   id,
@@ -15,6 +20,7 @@ const ProductCard = ({
   reviewCount,
 }) => {
   const [isAdding, setIsAdding] = useState(false);
+  const tapTransition = useMotionTransition(springTap);
   const displayPrice = Number(price || 0).toLocaleString('fr-FR', {
     maximumFractionDigits: 0,
   });
@@ -83,20 +89,22 @@ const ProductCard = ({
             )}
           </div>
 
-          <button
+          <MotionButton
             type="button"
             className="product-add-button"
             onClick={handleAddToCart}
             aria-label="Ajouter au panier"
             disabled={isAdding}
             title="Ajouter au panier"
+            whileTap={isAdding ? undefined : { scale: 0.92 }}
+            transition={tapTransition}
           >
             <svg className="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="9" cy="21" r="1" />
               <circle cx="20" cy="21" r="1" />
               <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
             </svg>
-          </button>
+          </MotionButton>
         </div>
       </div>
     </article>

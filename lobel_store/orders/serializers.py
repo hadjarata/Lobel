@@ -21,7 +21,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'product', 'product_id', 'quantity', 'date_added']
 
 
-class OrderSerializer(serializers.ModelSerializer):
+class OrderReadSerializer(serializers.ModelSerializer):
     customer = CustomerSerializer(read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
 
@@ -43,3 +43,8 @@ class OrderSerializer(serializers.ModelSerializer):
             'cart_total',
             'cart_items'
         ]
+        read_only_fields = fields
+
+
+# Backwards-compatible import used by the existing services and tests.
+OrderSerializer = OrderReadSerializer

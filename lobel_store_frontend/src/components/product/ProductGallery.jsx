@@ -1,4 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  backdropVariants,
+  springModal,
+  springSnappy,
+  zoomModalVariants,
+} from '../../utils/motion';
+import { useMotionTransition } from '../../utils/useMotionTransition';
 import './ProductGallery.css';
 
 const ProductGallery = ({ media, productName }) => {
@@ -88,6 +96,9 @@ const ProductGallery = ({ media, productName }) => {
       setIsZoomed(false);
     }
   };
+
+  const overlayTransition = useMotionTransition(springModal);
+  const zoomTransition = useMotionTransition(springSnappy);
 
   if (!validMedia || validMedia.length === 0) {
     return (
@@ -238,23 +249,40 @@ const ProductGallery = ({ media, productName }) => {
         </div>
       )}
 
-      {/* Overlay pour le zoom */}
-      {isZoomed && (
-        <div className="zoom-overlay" onClick={() => setIsZoomed(false)}>
-          <div className="zoomed-image-container">
-            {currentMedia.type === 'image' && (
-              <img
-                src={currentMedia.url}
-                alt={`${productName} - Zoom`}
-                className="zoomed-image"
-              />
-            )}
-          </div>
-          <button className="zoom-close" onClick={() => setIsZoomed(false)}>
-            ✕
-          </button>
-        </div>
-      )}
+      <AnimatePresence>
+        {isZoomed && (
+          <motion.div
+            className="zoom-overlay"
+            onClick={() => setIsZoomed(false)}
+            variants={backdropVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={overlayTransition}
+          >
+            <motion.div
+              className="zoomed-image-container"
+              variants={zoomModalVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={zoomTransition}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {currentMedia.type === 'image' && (
+                <img
+                  src={currentMedia.url}
+                  alt={`${productName} - Zoom`}
+                  className="zoomed-image"
+                />
+              )}
+            </motion.div>
+            <button className="zoom-close" onClick={() => setIsZoomed(false)}>
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

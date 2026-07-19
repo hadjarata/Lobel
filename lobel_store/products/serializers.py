@@ -130,6 +130,29 @@ class ProductSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(first_video.file.url) if request else first_video.file.url
         return None
 
+
+class ProductWriteSerializer(serializers.ModelSerializer):
+    """Minimal catalogue input accepted from staff users."""
+
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all()
+    )
+    collections = serializers.PrimaryKeyRelatedField(
+        queryset=Collection.objects.all(),
+        many=True,
+        required=False,
+    )
+
+    class Meta:
+        model = Product
+        fields = [
+            'name',
+            'category',
+            'description',
+            'price',
+            'collections',
+        ]
+
 class CollectionSerializer(serializers.ModelSerializer):
     image_url = serializers.SerializerMethodField()
     video_url = serializers.SerializerMethodField()

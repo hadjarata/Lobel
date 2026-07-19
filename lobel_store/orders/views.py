@@ -6,13 +6,14 @@ from rest_framework.response import Response
 from .models import Order, OrderItem
 from .serializers import OrderSerializer, OrderItemSerializer
 from .services.cart_service import CartService
+from .permissions import IsOrderOwner
 
 cart_service = CartService()
 
-class OrderViewSet(viewsets.ModelViewSet):
+class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsOrderOwner]
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:

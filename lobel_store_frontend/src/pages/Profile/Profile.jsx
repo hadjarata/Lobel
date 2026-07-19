@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { panelVariants, springSnappy } from '../../utils/motion';
+import { useMotionTransition } from '../../utils/useMotionTransition';
 import { fetchCart } from '../../api/cart';
 import { getOrders } from '../../api/orders';
 import { getPayments } from '../../api/payments';
@@ -36,6 +39,8 @@ const Profile = () => {
   const setActiveTab = (tab) => {
     setSearchParams({ tab }, { replace: true });
   };
+
+  const panelTransition = useMotionTransition(springSnappy);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -212,9 +217,19 @@ const Profile = () => {
 
       <div className="profile-dashboard">
         <ProfileSidebar activeTab={activeTab} onTabChange={setActiveTab} stats={stats} />
-        <div className="profile-main" key={activeTab}>
-          {renderPanel()}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            className="profile-main"
+            variants={panelVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={panelTransition}
+          >
+            {renderPanel()}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

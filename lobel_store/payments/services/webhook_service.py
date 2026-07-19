@@ -3,11 +3,16 @@ import logging
 from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
+from django.conf import settings
 
 from orders.services.order_service import InsufficientStockError, OrderFulfillmentError
 from payments.models import Payment, PaymentWebhookEvent
 from payments.providers import get_payment_provider
-from payments.providers.base import PaymentProvider, WebhookParseError
+from payments.providers.base import (
+    PaymentConfigurationError,
+    PaymentProvider,
+    WebhookParseError,
+)
 from payments.services.payment_service import PaymentService
 
 logger = logging.getLogger(__name__)
@@ -32,6 +37,11 @@ class PaymentWebhookService:
         self.payment_service = payment_service or PaymentService()
 
     def process(self, raw_body: bytes, content_type: str | None) -> PaymentWebhookResult:
+        if not settings.DEBUG and not getattr(settings, "TESTING", False):
+            raise PaymentConfigurationError(
+                "Production payment webhook verification is not implemented."
+            )
+
         payload_hash = hashlib.sha256(raw_body).hexdigest()
 
         try:

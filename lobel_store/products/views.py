@@ -11,20 +11,26 @@ from rest_framework.response import Response
 
 from orders import models
 from .models import Category, Product
-from .serializers import CategorySerializer, ProductSerializer
-from rest_framework.permissions import AllowAny
+from .serializers import CategorySerializer, ProductSerializer, ProductWriteSerializer
 from .models import Collection
 from .serializers import CollectionSerializer
+from .permissions import IsAdminOrReadOnly
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsAdminOrReadOnly]
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return ProductWriteSerializer
+        return ProductSerializer
 
     def get_queryset(self):
         queryset = Product.objects.all().prefetch_related('collections')
@@ -53,7 +59,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.filter(is_active=True)
     serializer_class = CollectionSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminOrReadOnly]
     lookup_field = 'slug'  # 🔥 IMPORTANT
 
     def get_queryset(self):

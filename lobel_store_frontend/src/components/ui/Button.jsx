@@ -1,15 +1,20 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { springTap } from '../../utils/motion';
+import { useMotionTransition } from '../../utils/useMotionTransition';
 import './Button.css';
 
-const Button = ({ 
-  children, 
-  variant = 'primary', 
-  size = 'medium', 
-  onClick, 
+const MotionButton = motion.button;
+
+const Button = ({
+  children,
+  variant = 'primary',
+  size = 'medium',
+  onClick,
   type = 'button',
   disabled = false,
   className = '',
-  ...props 
+  ...props
 }) => {
   const buttonClasses = `
     btn 
@@ -19,16 +24,20 @@ const Button = ({
     ${className}
   `.trim();
 
+  const tapTransition = useMotionTransition(springTap);
+
   return (
-    <button
+    <MotionButton
       type={type}
       className={buttonClasses}
       onClick={onClick}
       disabled={disabled}
+      whileTap={disabled ? undefined : { scale: 0.98 }}
+      transition={tapTransition}
       {...props}
     >
       {children}
-    </button>
+    </MotionButton>
   );
 };
 
