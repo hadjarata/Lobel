@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CollectionCard from '../product/CollectionCard';
 import { getCollections } from '../../api/products';
-import { normalizeApiList } from '../../utils/collectionUtils';
+import { logger } from '../../utils/logger';
 import './CollectionsSection.css';
 
 const CollectionsSection = () => {
@@ -15,10 +15,10 @@ const CollectionsSection = () => {
         setLoading(true);
         setError(null);
         const collectionsData = await getCollections();
-        setCollections(normalizeApiList(collectionsData));
+        setCollections(collectionsData.results);
       } catch (err) {
         setError('Impossible de charger les collections');
-        console.error('Error fetching collections:', err);
+        logger.error('Error fetching collections:', err);
       } finally {
         setLoading(false);
       }

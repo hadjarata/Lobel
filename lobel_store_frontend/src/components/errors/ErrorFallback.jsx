@@ -1,4 +1,5 @@
 import React from 'react';
+import { publicConfig } from '../../config/env';
 import './ErrorFallback.css';
 
 const ErrorFallback = ({ error, onReset }) => {
@@ -12,7 +13,7 @@ const ErrorFallback = ({ error, onReset }) => {
           retourner à l&apos;accueil.
         </p>
 
-        {import.meta.env.DEV && error?.message && (
+        {publicConfig.isDevelopment && error?.message && (
           <pre className="error-fallback-details">{error.message}</pre>
         )}
 

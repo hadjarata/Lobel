@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import Order, OrderItem, OrderStatusHistory
+from .models import (
+    Order, OrderItem, OrderNotificationReceipt, OrderStatusHistory,
+)
 
 
 class OrderItemInline(admin.TabularInline):
@@ -90,3 +92,21 @@ class OrderStatusHistoryAdmin(admin.ModelAdmin):
         actions = super().get_actions(request)
         actions.pop("delete_selected", None)
         return actions
+
+
+@admin.register(OrderNotificationReceipt)
+class OrderNotificationReceiptAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "order", "event_code", "channel", "status", "attempts", "sent_at",
+    )
+    list_filter = ("status", "event_code", "channel")
+    readonly_fields = [field.name for field in OrderNotificationReceipt._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

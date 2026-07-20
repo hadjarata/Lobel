@@ -16,8 +16,8 @@ const ProfileCartPanel = ({ cart, loading, onRefresh }) => {
   }
 
   const items = cart?.items ?? [];
-  const itemCount = cart?.cart_items ?? items.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cart?.cart_total ?? 0;
+  const itemCount = cart?.cart_items ?? 0;
+  const cartTotal = cart?.cart_total ?? null;
 
   return (
     <section className="profile-panel">
@@ -56,7 +56,7 @@ const ProfileCartPanel = ({ cart, loading, onRefresh }) => {
           <ul className="profile-cart-list">
             {items.map((item) => {
               const imageUrl = getProductImageUrl(item.product);
-              const lineTotal = Number(item.product?.price || 0) * item.quantity;
+              const lineTotal = item.line_total;
 
               return (
                 <li key={item.id} className="profile-cart-item">
@@ -68,7 +68,7 @@ const ProfileCartPanel = ({ cart, loading, onRefresh }) => {
                     )}
                   </div>
                   <div className="profile-cart-item-info">
-                    <p>{item.product?.name || 'Produit'}</p>
+                    <p>{item.product_name || item.product?.name || 'Produit'}</p>
                     <span>Quantité : {item.quantity}</span>
                   </div>
                   <strong>{formatPrice(lineTotal)} FCFA</strong>

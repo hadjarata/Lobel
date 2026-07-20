@@ -1,24 +1,19 @@
-export const normalizeApiList = (data) => {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.results)) {
-    return data.results;
-  }
-
-  return [];
+export const formatPrice = (value) => {
+  if (value === null || value === undefined || value === '') return '—';
+  const amount = Number(value);
+  return Number.isFinite(amount)
+    ? amount.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+    : '—';
 };
-
-export const formatPrice = (value) =>
-  Number(value || 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 });
 
 export const formatDate = (value) => {
   if (!value) {
     return '—';
   }
 
-  return new Date(value).toLocaleDateString('fr-FR', {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('fr-FR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -30,7 +25,9 @@ export const formatDateTime = (value) => {
     return '—';
   }
 
-  return new Date(value).toLocaleString('fr-FR', {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('fr-FR', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

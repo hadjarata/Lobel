@@ -1,0 +1,2964 @@
+swagger: '2.0'
+info:
+  title: Lobel Store API
+  description: Documentation API pour Lobel Store
+  version: v1
+basePath: /api
+consumes:
+- application/json
+produces:
+- application/json
+securityDefinitions:
+  Basic:
+    type: basic
+security:
+- Basic: []
+paths:
+  /auth/login/:
+    post:
+      operationId: auth_login_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/EmailTokenObtainPair'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/EmailTokenObtainPair'
+      tags:
+      - auth
+    parameters: []
+  /auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: ''
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+      - auth
+    parameters: []
+  /auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/AccountTokenRefresh'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/AccountTokenRefresh'
+      tags:
+      - auth
+    parameters: []
+  /orders/order-items/:
+    get:
+      operationId: orders_order-items_list
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/OrderItem'
+      tags:
+      - orders
+    post:
+      operationId: orders_order-items_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderItem'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderItem'
+      tags:
+      - orders
+    parameters: []
+  /orders/order-items/{id}/:
+    get:
+      operationId: orders_order-items_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderItem'
+      tags:
+      - orders
+    put:
+      operationId: orders_order-items_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderItem'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderItem'
+      tags:
+      - orders
+    patch:
+      operationId: orders_order-items_partial_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderItem'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderItem'
+      tags:
+      - orders
+    delete:
+      operationId: orders_order-items_delete
+      description: ''
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order item.
+      required: true
+      type: integer
+  /orders/orders/:
+    get:
+      operationId: orders_orders_list
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/OrderList'
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/cart/:
+    get:
+      operationId: orders_orders_cart
+      description: Retourne le panier actif (commande non finalisée) du client connecté.
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/cart/clear/:
+    delete:
+      operationId: orders_orders_cart_clear_cart
+      description: ''
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/cart/merge/:
+    post:
+      operationId: orders_orders_cart_merge_cart
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/checkout/create-order/:
+    post:
+      operationId: orders_orders_checkout_checkout_create_order
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/checkout/delivery-options/:
+    post:
+      operationId: orders_orders_checkout_checkout_delivery_options
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/checkout/pending/:
+    get:
+      operationId: orders_orders_checkout_checkout_pending
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/checkout/preview/:
+    post:
+      operationId: orders_orders_checkout_checkout_preview
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters: []
+  /orders/orders/{id}/:
+    get:
+      operationId: orders_orders_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order.
+      required: true
+      type: integer
+  /orders/orders/{id}/cancel/:
+    post:
+      operationId: orders_orders_cancel
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order.
+      required: true
+      type: integer
+  /orders/orders/{id}/deliver/:
+    post:
+      operationId: orders_orders_deliver
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order.
+      required: true
+      type: integer
+  /orders/orders/{id}/prepare/:
+    post:
+      operationId: orders_orders_prepare
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order.
+      required: true
+      type: integer
+  /orders/orders/{id}/receipt/:
+    get:
+      operationId: orders_orders_receipt
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order.
+      required: true
+      type: integer
+  /orders/orders/{id}/request-refund/:
+    post:
+      operationId: orders_orders_request_refund
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order.
+      required: true
+      type: integer
+  /orders/orders/{id}/ship/:
+    post:
+      operationId: orders_orders_ship
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/OrderRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/OrderRead'
+      tags:
+      - orders
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this order.
+      required: true
+      type: integer
+  /payments/checkout/:
+    post:
+      operationId: payments_checkout_create
+      description: ''
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+      - payments
+    parameters: []
+  /payments/mock/confirm/:
+    post:
+      operationId: payments_mock_confirm_create
+      description: ''
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+      - payments
+    parameters: []
+  /payments/payments/:
+    get:
+      operationId: payments_payments_list
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/PaymentList'
+      tags:
+      - payments
+    parameters: []
+  /payments/payments/{id}/:
+    get:
+      operationId: payments_payments_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/PaymentRead'
+      tags:
+      - payments
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this payment.
+      required: true
+      type: integer
+  /payments/payments/{id}/redirected/:
+    post:
+      operationId: payments_payments_redirected
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/PaymentRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/PaymentRead'
+      tags:
+      - payments
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this payment.
+      required: true
+      type: integer
+  /payments/payments/{id}/refresh-status/:
+    post:
+      operationId: payments_payments_refresh_status
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/PaymentRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/PaymentRead'
+      tags:
+      - payments
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this payment.
+      required: true
+      type: integer
+  /payments/webhooks/ligdicash/:
+    post:
+      operationId: payments_webhooks_ligdicash_create
+      description: ''
+      parameters: []
+      responses:
+        '201':
+          description: ''
+      tags:
+      - payments
+    parameters: []
+  /products/categories/:
+    get:
+      operationId: products_categories_list
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/Category'
+      tags:
+      - products
+    post:
+      operationId: products_categories_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Category'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Category'
+      tags:
+      - products
+    parameters: []
+  /products/categories/{id}/:
+    get:
+      operationId: products_categories_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Category'
+      tags:
+      - products
+    put:
+      operationId: products_categories_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Category'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Category'
+      tags:
+      - products
+    patch:
+      operationId: products_categories_partial_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Category'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Category'
+      tags:
+      - products
+    delete:
+      operationId: products_categories_delete
+      description: ''
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this category.
+      required: true
+      type: integer
+  /products/categories/{id}/archive/:
+    post:
+      operationId: products_categories_archive
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Category'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Category'
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this category.
+      required: true
+      type: integer
+  /products/categories/{id}/reactivate/:
+    post:
+      operationId: products_categories_reactivate
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Category'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Category'
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this category.
+      required: true
+      type: integer
+  /products/collections/:
+    get:
+      operationId: products_collections_list
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/Collection'
+      tags:
+      - products
+    post:
+      operationId: products_collections_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Collection'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Collection'
+      tags:
+      - products
+    parameters: []
+  /products/collections/{slug}/:
+    get:
+      operationId: products_collections_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Collection'
+      tags:
+      - products
+    put:
+      operationId: products_collections_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Collection'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Collection'
+      tags:
+      - products
+    patch:
+      operationId: products_collections_partial_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Collection'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/Collection'
+      tags:
+      - products
+    delete:
+      operationId: products_collections_delete
+      description: ''
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      tags:
+      - products
+    parameters:
+    - name: slug
+      in: path
+      required: true
+      type: string
+      format: slug
+      pattern: ^[-a-zA-Z0-9_]+$
+  /products/media/:
+    get:
+      operationId: products_media_list
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/PublicMedia'
+      consumes:
+      - multipart/form-data
+      - application/x-www-form-urlencoded
+      tags:
+      - products
+    post:
+      operationId: products_media_create
+      description: ''
+      parameters:
+      - name: product
+        in: formData
+        required: true
+        type: integer
+      - name: media_type
+        in: formData
+        required: true
+        type: string
+        enum:
+        - image
+        - video
+      - name: file
+        in: formData
+        required: true
+        type: file
+      - name: order
+        in: formData
+        required: false
+        type: integer
+        default: 0
+        minimum: 0
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductMediaCreate'
+      consumes:
+      - multipart/form-data
+      - application/x-www-form-urlencoded
+      tags:
+      - products
+    parameters: []
+  /products/media/{id}/:
+    get:
+      operationId: products_media_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/PublicMedia'
+      consumes:
+      - multipart/form-data
+      - application/x-www-form-urlencoded
+      tags:
+      - products
+    patch:
+      operationId: products_media_partial_update
+      description: ''
+      parameters:
+      - name: file
+        in: formData
+        required: true
+        type: file
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductMediaUpdate'
+      consumes:
+      - multipart/form-data
+      - application/x-www-form-urlencoded
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this product media.
+      required: true
+      type: integer
+  /products/media/{id}/archive/:
+    post:
+      operationId: products_media_archive
+      description: ''
+      parameters:
+      - name: media_type
+        in: formData
+        required: true
+        type: string
+        enum:
+        - image
+        - video
+      - name: order
+        in: formData
+        required: false
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+      - name: width
+        in: formData
+        required: false
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+        x-nullable: true
+      - name: height
+        in: formData
+        required: false
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+        x-nullable: true
+      - name: duration_seconds
+        in: formData
+        required: false
+        type: string
+        format: decimal
+        x-nullable: true
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/PublicMedia'
+      consumes:
+      - multipart/form-data
+      - application/x-www-form-urlencoded
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this product media.
+      required: true
+      type: integer
+  /products/products/:
+    get:
+      operationId: products_products_list
+      description: ''
+      parameters:
+      - name: search
+        in: query
+        description: Nom, catégorie, collection ou SKU.
+        required: false
+        type: string
+      - name: category
+        in: query
+        description: Identifiant de catégorie.
+        required: false
+        type: integer
+      - name: collection
+        in: query
+        description: Identifiant ou slug de collection.
+        required: false
+        type: string
+      - name: available
+        in: query
+        description: true si une variante active est en stock.
+        required: false
+        type: boolean
+      - name: min_price
+        in: query
+        required: false
+        type: number
+      - name: max_price
+        in: query
+        required: false
+        type: number
+      - name: color
+        in: query
+        required: false
+        type: integer
+      - name: size
+        in: query
+        required: false
+        type: integer
+      - name: ordering
+        in: query
+        description: name, price, date_created ou sales_count; préfixe - pour décroissant.
+        required: false
+        type: string
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/ProductList'
+      tags:
+      - products
+    post:
+      operationId: products_products_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ProductWrite'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductWrite'
+      tags:
+      - products
+    parameters: []
+  /products/products/bestsellers/:
+    get:
+      operationId: products_products_bestsellers
+      description: Retourne les best sellers (produits les plus vendus)
+      parameters:
+      - name: search
+        in: query
+        description: Nom, catégorie, collection ou SKU.
+        required: false
+        type: string
+      - name: category
+        in: query
+        description: Identifiant de catégorie.
+        required: false
+        type: integer
+      - name: collection
+        in: query
+        description: Identifiant ou slug de collection.
+        required: false
+        type: string
+      - name: available
+        in: query
+        description: true si une variante active est en stock.
+        required: false
+        type: boolean
+      - name: min_price
+        in: query
+        required: false
+        type: number
+      - name: max_price
+        in: query
+        required: false
+        type: number
+      - name: color
+        in: query
+        required: false
+        type: integer
+      - name: size
+        in: query
+        required: false
+        type: integer
+      - name: ordering
+        in: query
+        description: name, price, date_created ou sales_count; préfixe - pour décroissant.
+        required: false
+        type: string
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/ProductList'
+      tags:
+      - products
+    parameters: []
+  /products/products/filter-options/:
+    get:
+      operationId: products_products_filter_options
+      description: Return complete public filter facets, independently of the current
+        page.
+      parameters:
+      - name: search
+        in: query
+        description: Nom, catégorie, collection ou SKU.
+        required: false
+        type: string
+      - name: category
+        in: query
+        description: Identifiant de catégorie.
+        required: false
+        type: integer
+      - name: collection
+        in: query
+        description: Identifiant ou slug de collection.
+        required: false
+        type: string
+      - name: available
+        in: query
+        description: true si une variante active est en stock.
+        required: false
+        type: boolean
+      - name: min_price
+        in: query
+        required: false
+        type: number
+      - name: max_price
+        in: query
+        required: false
+        type: number
+      - name: color
+        in: query
+        required: false
+        type: integer
+      - name: size
+        in: query
+        required: false
+        type: integer
+      - name: ordering
+        in: query
+        description: name, price, date_created ou sales_count; préfixe - pour décroissant.
+        required: false
+        type: string
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/ProductDetail'
+      tags:
+      - products
+    parameters: []
+  /products/products/new/:
+    get:
+      operationId: products_products_new
+      description: Retourne les nouveautés (créées il y a moins de 30 jours)
+      parameters:
+      - name: search
+        in: query
+        description: Nom, catégorie, collection ou SKU.
+        required: false
+        type: string
+      - name: category
+        in: query
+        description: Identifiant de catégorie.
+        required: false
+        type: integer
+      - name: collection
+        in: query
+        description: Identifiant ou slug de collection.
+        required: false
+        type: string
+      - name: available
+        in: query
+        description: true si une variante active est en stock.
+        required: false
+        type: boolean
+      - name: min_price
+        in: query
+        required: false
+        type: number
+      - name: max_price
+        in: query
+        required: false
+        type: number
+      - name: color
+        in: query
+        required: false
+        type: integer
+      - name: size
+        in: query
+        required: false
+        type: integer
+      - name: ordering
+        in: query
+        description: name, price, date_created ou sales_count; préfixe - pour décroissant.
+        required: false
+        type: string
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/ProductList'
+      tags:
+      - products
+    parameters: []
+  /products/products/resolve-variants/:
+    post:
+      operationId: products_products_resolve_variants
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ProductDetail'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductDetail'
+      tags:
+      - products
+    parameters: []
+  /products/products/{id}/:
+    get:
+      operationId: products_products_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductDetail'
+      tags:
+      - products
+    put:
+      operationId: products_products_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ProductWrite'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductWrite'
+      tags:
+      - products
+    patch:
+      operationId: products_products_partial_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ProductWrite'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductWrite'
+      tags:
+      - products
+    delete:
+      operationId: products_products_delete
+      description: ''
+      parameters: []
+      responses:
+        '204':
+          description: ''
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this product.
+      required: true
+      type: integer
+  /products/products/{id}/archive/:
+    post:
+      operationId: products_products_archive
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ProductDetail'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductDetail'
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this product.
+      required: true
+      type: integer
+  /products/products/{id}/reactivate/:
+    post:
+      operationId: products_products_reactivate
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/ProductDetail'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/ProductDetail'
+      tags:
+      - products
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this product.
+      required: true
+      type: integer
+  /token/:
+    post:
+      operationId: token_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/EmailTokenObtainPair'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/EmailTokenObtainPair'
+      tags:
+      - token
+    parameters: []
+  /token/refresh/:
+    post:
+      operationId: token_refresh_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/AccountTokenRefresh'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/AccountTokenRefresh'
+      tags:
+      - token
+    parameters: []
+  /users/customers/:
+    get:
+      operationId: users_customers_list
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/CustomerRead'
+      tags:
+      - users
+    post:
+      operationId: users_customers_create
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/Register'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/Register'
+      tags:
+      - users
+    parameters: []
+  /users/customers/change-password/:
+    post:
+      operationId: users_customers_change_password
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/CustomerRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomerRead'
+      tags:
+      - users
+    parameters: []
+  /users/customers/me/:
+    get:
+      operationId: users_customers_me
+      description: ''
+      parameters:
+      - name: page
+        in: query
+        description: A page number within the paginated result set.
+        required: false
+        type: integer
+      - name: page_size
+        in: query
+        description: Number of results to return per page.
+        required: false
+        type: integer
+      responses:
+        '200':
+          description: ''
+          schema:
+            required:
+            - count
+            - results
+            type: object
+            properties:
+              count:
+                type: integer
+              next:
+                type: string
+                format: uri
+                x-nullable: true
+              previous:
+                type: string
+                format: uri
+                x-nullable: true
+              results:
+                type: array
+                items:
+                  $ref: '#/definitions/CustomerRead'
+      tags:
+      - users
+    parameters: []
+  /users/customers/request-password-reset/:
+    post:
+      operationId: users_customers_request_password_reset
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/CustomerRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomerRead'
+      tags:
+      - users
+    parameters: []
+  /users/customers/reset-password/:
+    post:
+      operationId: users_customers_reset_password
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/CustomerRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomerRead'
+      tags:
+      - users
+    parameters: []
+  /users/customers/verify-email/:
+    post:
+      operationId: users_customers_verify_email
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/CustomerRead'
+      responses:
+        '201':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomerRead'
+      tags:
+      - users
+    parameters: []
+  /users/customers/{id}/:
+    get:
+      operationId: users_customers_read
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomerRead'
+      tags:
+      - users
+    put:
+      operationId: users_customers_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/CustomerUpdate'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomerUpdate'
+      tags:
+      - users
+    patch:
+      operationId: users_customers_partial_update
+      description: ''
+      parameters:
+      - name: data
+        in: body
+        required: true
+        schema:
+          $ref: '#/definitions/CustomerUpdate'
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomerUpdate'
+      tags:
+      - users
+    parameters:
+    - name: id
+      in: path
+      description: A unique integer value identifying this customer.
+      required: true
+      type: integer
+definitions:
+  EmailTokenObtainPair:
+    required:
+    - username
+    - password
+    type: object
+    properties:
+      username:
+        title: Username
+        type: string
+        minLength: 1
+      password:
+        title: Password
+        type: string
+        minLength: 1
+  AccountTokenRefresh:
+    required:
+    - refresh
+    type: object
+    properties:
+      refresh:
+        title: Refresh
+        type: string
+        minLength: 1
+      access:
+        title: Access
+        type: string
+        readOnly: true
+        minLength: 1
+  OrderItem:
+    required:
+    - variant_id
+    - quantity
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      product_id:
+        title: Product id
+        type: integer
+        readOnly: true
+      product_reference:
+        title: Product reference
+        type: integer
+        readOnly: true
+        x-nullable: true
+      product_name:
+        title: Product name
+        type: string
+        readOnly: true
+        minLength: 1
+      variant_id:
+        title: Variant id
+        type: integer
+      variant_reference:
+        title: Variant reference
+        type: integer
+        readOnly: true
+        x-nullable: true
+      variant_name:
+        title: Variant name
+        type: string
+        readOnly: true
+        minLength: 1
+      color:
+        title: Color
+        type: string
+        readOnly: true
+        minLength: 1
+      size:
+        title: Size
+        type: string
+        readOnly: true
+        minLength: 1
+      sku:
+        title: Sku
+        type: string
+        readOnly: true
+        minLength: 1
+      quantity:
+        title: Quantity
+        type: integer
+        maximum: 99
+        minimum: 1
+      unit_price:
+        title: Unit price
+        type: string
+        format: decimal
+        readOnly: true
+      currency:
+        title: Currency
+        type: string
+        readOnly: true
+        minLength: 1
+        x-nullable: true
+      discount_amount:
+        title: Discount amount
+        type: string
+        format: decimal
+        readOnly: true
+      subtotal:
+        title: Subtotal
+        type: string
+        format: decimal
+        readOnly: true
+        x-nullable: true
+      line_total:
+        title: Line total
+        type: string
+        format: decimal
+        readOnly: true
+      date_added:
+        title: Date added
+        type: string
+        format: date-time
+        readOnly: true
+  OrderList:
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      date_ordered:
+        title: Date ordered
+        type: string
+        format: date-time
+        readOnly: true
+      complete:
+        title: Complete
+        type: boolean
+        readOnly: true
+      status:
+        title: Status
+        type: string
+        enum:
+        - cart
+        - pending_payment
+        - payment_processing
+        - payment_failed
+        - paid
+        - preparing
+        - shipped
+        - delivered
+        - cancelled
+        - expired
+        - refund_required
+        - refund_pending
+        - refunded
+        - refund_failed
+        readOnly: true
+      cart_total:
+        title: Cart total
+        type: string
+        format: decimal
+        readOnly: true
+      cart_items:
+        title: Cart items
+        type: integer
+        readOnly: true
+      total_amount:
+        title: Total amount
+        type: string
+        format: decimal
+        readOnly: true
+        x-nullable: true
+      currency:
+        title: Currency
+        type: string
+        readOnly: true
+        minLength: 1
+      item_count:
+        title: Item count
+        type: integer
+        readOnly: true
+      status_label:
+        title: Status label
+        type: string
+        readOnly: true
+        minLength: 1
+      payment_status:
+        title: Payment status
+        type: string
+        readOnly: true
+      can_pay:
+        title: Can pay
+        type: string
+        readOnly: true
+      can_cancel:
+        title: Can cancel
+        type: string
+        readOnly: true
+  User:
+    required:
+    - username
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      username:
+        title: Username
+        description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+          only.
+        type: string
+        pattern: ^[\w.@+-]+$
+        maxLength: 150
+        minLength: 1
+      first_name:
+        title: First name
+        type: string
+        maxLength: 150
+      last_name:
+        title: Last name
+        type: string
+        maxLength: 150
+      email:
+        title: Email address
+        type: string
+        format: email
+        maxLength: 254
+      is_active:
+        title: Active
+        description: Designates whether this user should be treated as active. Unselect
+          this instead of deleting accounts.
+        type: boolean
+  CustomerRead:
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      user:
+        $ref: '#/definitions/User'
+      country:
+        title: Country
+        description: 'Code pays ISO (ex: FR, ML)'
+        type: string
+        readOnly: true
+        minLength: 1
+      phone_number:
+        title: Phone number
+        description: Numéro de téléphone au format international
+        type: string
+        readOnly: true
+        minLength: 1
+      address:
+        title: Address
+        type: string
+        readOnly: true
+        minLength: 1
+      date_created:
+        title: Date created
+        type: string
+        format: date-time
+        readOnly: true
+  OrderRead:
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      customer:
+        $ref: '#/definitions/CustomerRead'
+      date_ordered:
+        title: Date ordered
+        type: string
+        format: date-time
+        readOnly: true
+      complete:
+        title: Complete
+        type: boolean
+        readOnly: true
+      status:
+        title: Status
+        type: string
+        enum:
+        - cart
+        - pending_payment
+        - payment_processing
+        - payment_failed
+        - paid
+        - preparing
+        - shipped
+        - delivered
+        - cancelled
+        - expired
+        - refund_required
+        - refund_pending
+        - refunded
+        - refund_failed
+        readOnly: true
+      paid_at:
+        title: Paid at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      transaction_id:
+        title: Transaction id
+        type: string
+        readOnly: true
+        minLength: 1
+        x-nullable: true
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/OrderItem'
+        readOnly: true
+      cart_total:
+        title: Cart total
+        type: string
+        format: decimal
+        readOnly: true
+      cart_items:
+        title: Cart items
+        type: integer
+        readOnly: true
+      snapshot_at:
+        title: Snapshot at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      customer_name:
+        title: Customer name
+        type: string
+        readOnly: true
+        minLength: 1
+      customer_email:
+        title: Customer email
+        type: string
+        format: email
+        readOnly: true
+        minLength: 1
+      delivery_recipient_name:
+        title: Delivery recipient name
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_phone:
+        title: Delivery phone
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_address:
+        title: Delivery address
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_country:
+        title: Delivery country
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_region:
+        title: Delivery region
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_city:
+        title: Delivery city
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_district:
+        title: Delivery district
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_street:
+        title: Delivery street
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_instructions:
+        title: Delivery instructions
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_method_code:
+        title: Delivery method code
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_method_label:
+        title: Delivery method label
+        type: string
+        readOnly: true
+        minLength: 1
+      delivery_eta_min_days:
+        title: Delivery eta min days
+        type: integer
+        readOnly: true
+        x-nullable: true
+      delivery_eta_max_days:
+        title: Delivery eta max days
+        type: integer
+        readOnly: true
+        x-nullable: true
+      billing_same_as_shipping:
+        title: Billing same as shipping
+        type: boolean
+        readOnly: true
+      billing_address:
+        title: Billing address
+        type: string
+        readOnly: true
+        minLength: 1
+      checkout_version:
+        title: Checkout version
+        type: string
+        readOnly: true
+        minLength: 1
+      subtotal_amount:
+        title: Subtotal amount
+        type: string
+        format: decimal
+        readOnly: true
+        x-nullable: true
+      shipping_amount:
+        title: Shipping amount
+        type: string
+        format: decimal
+        readOnly: true
+      discount_amount:
+        title: Discount amount
+        type: string
+        format: decimal
+        readOnly: true
+      total_amount:
+        title: Total amount
+        type: string
+        format: decimal
+        readOnly: true
+        x-nullable: true
+      currency:
+        title: Currency
+        type: string
+        readOnly: true
+        minLength: 1
+      preparation_started_at:
+        title: Preparation started at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      shipped_at:
+        title: Shipped at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      delivered_at:
+        title: Delivered at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      cancelled_at:
+        title: Cancelled at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      refund_requested_at:
+        title: Refund requested at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      refunded_at:
+        title: Refunded at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      stock_consumed_at:
+        title: Stock consumed at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      stock_released_at:
+        title: Stock released at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      status_history:
+        title: Status history
+        type: string
+        readOnly: true
+      payment_processing_at:
+        title: Payment processing at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      payment_failed_at:
+        title: Payment failed at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      expired_at:
+        title: Expired at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      status_label:
+        title: Status label
+        type: string
+        readOnly: true
+        minLength: 1
+      timeline:
+        title: Timeline
+        type: string
+        readOnly: true
+      available_actions:
+        title: Available actions
+        type: string
+        readOnly: true
+      payment:
+        title: Payment
+        type: string
+        readOnly: true
+  PaymentOrderSummary:
+    required:
+    - id
+    - status
+    - date_ordered
+    type: object
+    properties:
+      id:
+        title: Id
+        type: integer
+      status:
+        title: Status
+        type: string
+        minLength: 1
+      date_ordered:
+        title: Date ordered
+        type: string
+        format: date-time
+  PaymentList:
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      order:
+        $ref: '#/definitions/PaymentOrderSummary'
+      amount:
+        title: Amount
+        type: string
+        format: decimal
+        readOnly: true
+      payment_method:
+        title: Payment method
+        type: string
+        enum:
+        - card
+        - paypal
+        - cash
+        - mock
+        - ligdicash
+        readOnly: true
+      status:
+        title: Status
+        type: string
+        enum:
+        - created
+        - initializing
+        - pending
+        - redirect_required
+        - processing
+        - completed
+        - failed
+        - cancelled
+        - expired
+        - unknown
+        readOnly: true
+      provider:
+        title: Provider
+        type: string
+        enum:
+        - manual
+        - mock
+        - ligdicash
+        readOnly: true
+      currency:
+        title: Currency
+        type: string
+        readOnly: true
+        minLength: 1
+      processed_at:
+        title: Processed at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      date_paid:
+        title: Date paid
+        type: string
+        format: date-time
+        readOnly: true
+  PaymentRead:
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      uuid:
+        title: Uuid
+        type: string
+        format: uuid
+        readOnly: true
+      order:
+        $ref: '#/definitions/OrderRead'
+      amount:
+        title: Amount
+        type: string
+        format: decimal
+        readOnly: true
+      payment_method:
+        title: Payment method
+        type: string
+        enum:
+        - card
+        - paypal
+        - cash
+        - mock
+        - ligdicash
+        readOnly: true
+      status:
+        title: Status
+        type: string
+        enum:
+        - created
+        - initializing
+        - pending
+        - redirect_required
+        - processing
+        - completed
+        - failed
+        - cancelled
+        - expired
+        - unknown
+        readOnly: true
+      provider:
+        title: Provider
+        type: string
+        enum:
+        - manual
+        - mock
+        - ligdicash
+        readOnly: true
+      order_reference:
+        title: Order reference
+        type: string
+        readOnly: true
+        minLength: 1
+      merchant_reference:
+        title: Merchant reference
+        type: string
+        readOnly: true
+        minLength: 1
+        x-nullable: true
+      external_transaction_id:
+        title: External transaction id
+        type: string
+        readOnly: true
+        minLength: 1
+        x-nullable: true
+      currency:
+        title: Currency
+        type: string
+        readOnly: true
+        minLength: 1
+      provider_status:
+        title: Provider status
+        type: string
+        readOnly: true
+        minLength: 1
+      initialized_at:
+        title: Initialized at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      redirected_at:
+        title: Redirected at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      confirmed_at:
+        title: Confirmed at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      failed_at:
+        title: Failed at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      cancelled_at:
+        title: Cancelled at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      expired_at:
+        title: Expired at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      last_checked_at:
+        title: Last checked at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      processed_at:
+        title: Processed at
+        type: string
+        format: date-time
+        readOnly: true
+        x-nullable: true
+      date_paid:
+        title: Date paid
+        type: string
+        format: date-time
+        readOnly: true
+  Category:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: Name
+        type: string
+        maxLength: 100
+        minLength: 1
+      description:
+        title: Description
+        type: string
+      is_active:
+        title: Is active
+        type: boolean
+      date_created:
+        title: Date created
+        type: string
+        format: date-time
+        readOnly: true
+  Collection:
+    required:
+    - name
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: Name
+        type: string
+        maxLength: 255
+        minLength: 1
+      slug:
+        title: Slug
+        type: string
+        format: slug
+        pattern: ^[-a-zA-Z0-9_]+$
+        readOnly: true
+        minLength: 1
+      description:
+        title: Description
+        type: string
+      cover_type:
+        title: Cover type
+        type: string
+        enum:
+        - image
+        - video
+      image:
+        title: Image
+        type: string
+        readOnly: true
+        x-nullable: true
+        format: uri
+      image_url:
+        title: Image url
+        type: string
+        readOnly: true
+      video:
+        title: Video
+        type: string
+        readOnly: true
+        x-nullable: true
+        format: uri
+      video_url:
+        title: Video url
+        type: string
+        readOnly: true
+      is_active:
+        title: Is active
+        type: boolean
+      start_date:
+        title: Start date
+        type: string
+        format: date
+        x-nullable: true
+      end_date:
+        title: End date
+        type: string
+        format: date
+        x-nullable: true
+      products:
+        type: array
+        items:
+          type: integer
+        readOnly: true
+        uniqueItems: true
+      created_at:
+        title: Created at
+        type: string
+        format: date-time
+        readOnly: true
+      updated_at:
+        title: Updated at
+        type: string
+        format: date-time
+        readOnly: true
+  PublicMedia:
+    required:
+    - media_type
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      media_type:
+        title: Media type
+        type: string
+        enum:
+        - image
+        - video
+      url:
+        title: Url
+        type: string
+        readOnly: true
+      order:
+        title: Order
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+      width:
+        title: Width
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+        x-nullable: true
+      height:
+        title: Height
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+        x-nullable: true
+      duration_seconds:
+        title: Duration seconds
+        type: string
+        format: decimal
+        x-nullable: true
+  ProductMediaCreate:
+    required:
+    - product
+    - media_type
+    type: object
+    properties:
+      product:
+        title: Product
+        type: integer
+      media_type:
+        title: Media type
+        type: string
+        enum:
+        - image
+        - video
+      file:
+        title: File
+        type: string
+        readOnly: true
+        format: uri
+      order:
+        title: Order
+        type: integer
+        default: 0
+        minimum: 0
+  ProductMediaUpdate:
+    type: object
+    properties:
+      file:
+        title: File
+        type: string
+        readOnly: true
+        format: uri
+  ProductList:
+    required:
+    - name
+    - price
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: Name
+        type: string
+        maxLength: 200
+        minLength: 1
+      price:
+        title: Price
+        type: string
+        format: decimal
+      sales_count:
+        title: Sales count
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+      date_created:
+        title: Date created
+        type: string
+        format: date-time
+        readOnly: true
+      category:
+        $ref: '#/definitions/Category'
+      collections:
+        title: Collections
+        type: string
+        readOnly: true
+      variants:
+        title: Variants
+        type: string
+        readOnly: true
+      image:
+        title: Image
+        type: string
+        readOnly: true
+      is_available:
+        title: Is available
+        type: boolean
+        readOnly: true
+  ProductWrite:
+    required:
+    - name
+    - category
+    - price
+    type: object
+    properties:
+      name:
+        title: Name
+        type: string
+        maxLength: 200
+        minLength: 1
+      category:
+        title: Category
+        type: integer
+      description:
+        title: Description
+        type: string
+      price:
+        title: Price
+        type: string
+        format: decimal
+      is_active:
+        title: Is active
+        type: boolean
+      collections:
+        type: array
+        items:
+          type: integer
+        uniqueItems: true
+  ProductDetail:
+    required:
+    - name
+    - price
+    type: object
+    properties:
+      id:
+        title: ID
+        type: integer
+        readOnly: true
+      name:
+        title: Name
+        type: string
+        maxLength: 200
+        minLength: 1
+      category:
+        $ref: '#/definitions/Category'
+      description:
+        title: Description
+        type: string
+      price:
+        title: Price
+        type: string
+        format: decimal
+      sales_count:
+        title: Sales count
+        type: integer
+        maximum: 2147483647
+        minimum: 0
+      is_active:
+        title: Is active
+        type: boolean
+      date_created:
+        title: Date created
+        type: string
+        format: date-time
+        readOnly: true
+      collections:
+        title: Collections
+        type: string
+        readOnly: true
+      media_files:
+        title: Media files
+        type: string
+        readOnly: true
+      variants:
+        title: Variants
+        type: string
+        readOnly: true
+      image:
+        title: Image
+        type: string
+        readOnly: true
+      video:
+        title: Video
+        type: string
+        readOnly: true
+      is_available:
+        title: Is available
+        type: boolean
+        readOnly: true
+  Register:
+    required:
+    - email
+    - password
+    type: object
+    properties:
+      email:
+        title: Email
+        type: string
+        format: email
+        minLength: 1
+      password:
+        title: Password
+        type: string
+        minLength: 1
+      first_name:
+        title: First name
+        type: string
+      last_name:
+        title: Last name
+        type: string
+      country:
+        title: Country
+        description: 'Code pays ISO (ex: FR, ML)'
+        type: string
+        maxLength: 3
+      phone_number:
+        title: Phone number
+        description: Numéro de téléphone au format international
+        type: string
+        maxLength: 20
+  CustomerUpdate:
+    type: object
+    properties:
+      first_name:
+        title: First name
+        type: string
+      last_name:
+        title: Last name
+        type: string
+      country:
+        title: Country
+        description: 'Code pays ISO (ex: FR, ML)'
+        type: string
+        maxLength: 3
+      phone_number:
+        title: Phone number
+        description: Numéro de téléphone au format international
+        type: string
+        maxLength: 20
+      address:
+        title: Address
+        type: string

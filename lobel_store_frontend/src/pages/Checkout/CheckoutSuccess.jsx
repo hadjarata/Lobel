@@ -1,102 +1,113 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { confirmMockPayment } from '../../api/payments';
-import { toast } from '../../components/ui/toast';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  clearPendingCheckout,
-  getPendingCheckout,
-} from '../../utils/pendingCheckout';
+  confirmMockPayment, getPaymentById, refreshPaymentStatus,
+} from '../../api/payments';
+import { clearPendingCheckout, getPendingCheckout } from '../../utils/pendingCheckout';
+import { publicConfig } from '../../config/env';
+import { paymentPollDelay } from '../../payments/paymentPolicy';
 import './CheckoutSuccess.css';
+
+const FINAL = new Set(['completed', 'failed', 'cancelled', 'expired']);
+const MAX_ATTEMPTS = 8;
 
 const CheckoutSuccess = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [phase, setPhase] = useState('confirming');
-  const [orderId, setOrderId] = useState(null);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [initialPending] = useState(getPendingCheckout);
+  const [payment, setPayment] = useState(null);
+  const [phase, setPhase] = useState(
+    initialPending?.paymentId ? 'verifying' : 'unknown',
+  );
+  const [message, setMessage] = useState(
+    initialPending?.paymentId
+      ? 'Vérification sécurisée du paiement…'
+      : 'Aucun paiement en attente n’a été retrouvé.',
+  );
+  const stopped = useRef(false);
 
   useEffect(() => {
-    const confirmPayment = async () => {
-      const pending = getPendingCheckout();
-      const paymentId =
-        searchParams.get('paymentId') ||
-        (pending?.paymentId != null ? String(pending.paymentId) : null);
-      const resolvedOrderId =
-        searchParams.get('orderId') ||
-        (pending?.orderId != null ? String(pending.orderId) : null);
-
-      if (!paymentId) {
-        setErrorMessage('Identifiant de paiement introuvable.');
-        setPhase('error');
-        return;
-      }
-
+    window.history.replaceState({}, document.title, '/checkout/payment/return');
+    const pending = initialPending;
+    if (!pending?.paymentId) {
+      return undefined;
+    }
+    stopped.current = false;
+    let timer;
+    const verify = async (attempt = 0) => {
+      if (stopped.current || document.visibilityState === 'hidden') return;
       try {
-        const result = await confirmMockPayment(Number(paymentId));
-        clearPendingCheckout();
-        setOrderId(result.orderId ?? resolvedOrderId);
-        toast.success('Paiement confirmé');
-        setPhase('success');
-      } catch (err) {
-        const message =
-          err?.response?.data?.detail ||
-          err?.message ||
-          'Impossible de confirmer le paiement.';
-        setErrorMessage(message);
-        setPhase('error');
-        toast.error(message);
+        if (publicConfig.paymentMockEnabled && attempt === 0) {
+          await confirmMockPayment(pending.paymentId).catch(() => null);
+        }
+        const current = attempt === 0
+          ? await getPaymentById(pending.paymentId)
+          : await refreshPaymentStatus(pending.paymentId);
+        if (stopped.current) return;
+        setPayment(current);
+        if (current.status === 'completed' && current.order?.status === 'paid') {
+          setPhase('success'); setMessage('Paiement confirmé par le serveur.');
+          clearPendingCheckout(); return;
+        }
+        if (FINAL.has(current.status)) {
+          setPhase(current.status); setMessage('Le paiement n’a pas été confirmé.'); return;
+        }
+        if (attempt >= MAX_ATTEMPTS - 1) {
+          setPhase('pending'); setMessage('La confirmation prend plus de temps que prévu.'); return;
+        }
+        timer = window.setTimeout(() => verify(attempt + 1), paymentPollDelay(attempt));
+      } catch {
+        if (!stopped.current) {
+          setPhase('network'); setMessage('Impossible de vérifier le paiement pour le moment.');
+        }
       }
     };
+    verify();
+    return () => {
+      stopped.current = true;
+      window.clearTimeout(timer);
+    };
+  }, [initialPending]);
 
-    if (searchParams.get('mock') === 'true') {
-      confirmPayment();
-      return;
+  const retry = async () => {
+    const pending = getPendingCheckout();
+    if (!pending?.paymentId) return;
+    setPhase('verifying');
+    try {
+      const current = await refreshPaymentStatus(pending.paymentId);
+      setPayment(current);
+      if (current.status === 'completed' && current.order?.status === 'paid') {
+        setPhase('success'); setMessage('Paiement confirmé par le serveur.');
+        clearPendingCheckout();
+      } else {
+        setPhase(current.status); setMessage('Statut relu depuis le serveur.');
+      }
+    } catch {
+      setPhase('network'); setMessage('Vérification temporairement indisponible.');
     }
-
-    setErrorMessage('Cette page nécessite un paiement mock.');
-    setPhase('error');
-  }, [searchParams]);
+  };
 
   return (
-    <div className="checkout-success-page">
-      <div className="checkout-success-card">
-        {phase === 'confirming' && (
-          <>
-            <h1>Confirmation en cours...</h1>
-            <p>Veuillez patienter pendant la validation de votre commande.</p>
-          </>
+    <main className="checkout-success-page">
+      <section className="checkout-success-card" aria-live="polite">
+        <h1>{phase === 'success' ? 'Paiement confirmé' : 'Suivi du paiement'}</h1>
+        <p>{message}</p>
+        {payment?.order?.id && <p>Commande #{payment.order.id}</p>}
+        {payment?.amount && <p>{payment.amount} {payment.currency}</p>}
+        {phase !== 'success' && (
+          <button type="button" className="checkout-success-btn" onClick={retry}>
+            Vérifier à nouveau
+          </button>
         )}
-
-        {phase === 'success' && (
-          <>
-            <h1>Paiement confirmé</h1>
-            <p>Votre commande a été validée avec succès.</p>
-            {orderId && <p className="checkout-success-order">Commande #{orderId}</p>}
-            <button
-              type="button"
-              className="checkout-success-btn"
-              onClick={() => navigate('/shop')}
-            >
-              Continuer mes achats
-            </button>
-          </>
+        <button type="button" className="checkout-success-btn" onClick={() => navigate('/profile')}>
+          Voir ma commande
+        </button>
+        {payment?.order?.id && phase === 'success' && (
+          <button type="button" className="checkout-success-btn" onClick={() => navigate(`/order-confirmation/${payment.order.id}`)}>
+            Ouvrir la confirmation
+          </button>
         )}
-
-        {phase === 'error' && (
-          <>
-            <h1>Confirmation impossible</h1>
-            <p>{errorMessage}</p>
-            <button
-              type="button"
-              className="checkout-success-btn"
-              onClick={() => navigate('/checkout')}
-            >
-              Retour au checkout
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 };
 

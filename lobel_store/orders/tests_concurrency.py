@@ -59,6 +59,8 @@ class LifecycleConcurrencyTests(TransactionTestCase):
                 reason_code="operational_issue",
             )
             return changed
+        except OrderTransitionError:
+            return False
         finally:
             close_old_connections()
 
@@ -104,7 +106,7 @@ class LifecycleConcurrencyTests(TransactionTestCase):
         finally:
             close_old_connections()
 
-    def test_double_cancel_releases_stock_once(self):
+    def test_concurrent_paid_cancellation_is_refused(self):
         barrier = Barrier(2)
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = [future.result() for future in [
@@ -112,10 +114,11 @@ class LifecycleConcurrencyTests(TransactionTestCase):
             ]]
         self.variant.refresh_from_db()
         self.order.refresh_from_db()
-        self.assertCountEqual(results, [True, False])
-        self.assertEqual(self.variant.stock, 10)
+        self.assertEqual(results, [False, False])
+        self.assertEqual(self.variant.stock, 8)
+        self.assertEqual(self.order.status, Order.STATUS_PAID)
         self.assertEqual(
-            self.order.status_history.filter(to_status=Order.STATUS_CANCELLED).count(), 1
+            self.order.status_history.filter(to_status=Order.STATUS_CANCELLED).count(), 0
         )
 
     def test_double_ship_creates_one_transition(self):
@@ -169,7 +172,7 @@ class LifecycleConcurrencyTests(TransactionTestCase):
             self.assertIsNotNone(order.stock_consumed_at)
             self.assertIsNone(order.stock_released_at)
         else:
-            self.assertEqual(order.status, Order.STATUS_CANCELLED)
+            self.assertEqual(order.status, Order.STATUS_REFUND_REQUIRED)
             self.assertIn("cancelled", outcomes)
             self.assertEqual(self.variant.stock, 8)
             self.assertIsNone(order.stock_consumed_at)

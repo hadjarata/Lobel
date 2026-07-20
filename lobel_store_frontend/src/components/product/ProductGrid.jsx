@@ -55,6 +55,7 @@ const ProductGrid = ({
           name={product.name}
           price={product.price}
           image={product.image}
+          variants={product.variants}
           collections={product.collections}
           badge={product.badge}
           salesCount={product.sales_count}

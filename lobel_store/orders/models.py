@@ -19,15 +19,26 @@ class ProtectedCommercialQuerySet(models.QuerySet):
         )
 
 
+class AppendOnlyCommercialQuerySet(ProtectedCommercialQuerySet):
+    def update(self, **kwargs):
+        raise CommercialDataDeletionError(
+            "L'historique commercial est append-only."
+        )
+
+
 class Order(models.Model):
     objects = ProtectedCommercialQuerySet.as_manager()
     STATUS_CART = 'cart'
     STATUS_PENDING_PAYMENT = 'pending_payment'
+    STATUS_PAYMENT_PROCESSING = 'payment_processing'
+    STATUS_PAYMENT_FAILED = 'payment_failed'
     STATUS_PAID = 'paid'
     STATUS_PREPARING = 'preparing'
     STATUS_SHIPPED = 'shipped'
     STATUS_DELIVERED = 'delivered'
     STATUS_CANCELLED = 'cancelled'
+    STATUS_EXPIRED = 'expired'
+    STATUS_REFUND_REQUIRED = 'refund_required'
     STATUS_REFUND_PENDING = 'refund_pending'
     STATUS_REFUNDED = 'refunded'
     STATUS_REFUND_FAILED = 'refund_failed'
@@ -38,23 +49,32 @@ class Order(models.Model):
     STATUS_CHOICES = (
         (STATUS_CART, 'Cart'),
         (STATUS_PENDING_PAYMENT, 'Pending payment'),
+        (STATUS_PAYMENT_PROCESSING, 'Payment processing'),
+        (STATUS_PAYMENT_FAILED, 'Payment failed'),
         (STATUS_PAID, 'Paid'),
         (STATUS_PREPARING, 'Preparing'),
         (STATUS_SHIPPED, 'Shipped'),
         (STATUS_DELIVERED, 'Delivered'),
         (STATUS_CANCELLED, 'Cancelled'),
+        (STATUS_EXPIRED, 'Expired'),
+        (STATUS_REFUND_REQUIRED, 'Refund required'),
         (STATUS_REFUND_PENDING, 'Refund pending'),
         (STATUS_REFUNDED, 'Refunded'),
         (STATUS_REFUND_FAILED, 'Refund failed'),
     )
 
-    TERMINAL_STATUSES = frozenset({STATUS_DELIVERED, STATUS_CANCELLED, STATUS_REFUNDED})
+    TERMINAL_STATUSES = frozenset({
+        STATUS_DELIVERED, STATUS_CANCELLED, STATUS_EXPIRED, STATUS_REFUNDED,
+    })
 
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, related_name='orders')
     date_ordered = models.DateTimeField(auto_now_add=True)
     complete = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_CART)
     paid_at = models.DateTimeField(null=True, blank=True)
+    payment_processing_at = models.DateTimeField(null=True, blank=True)
+    payment_failed_at = models.DateTimeField(null=True, blank=True)
+    expired_at = models.DateTimeField(null=True, blank=True)
     transaction_id = models.CharField(max_length=100, null=True, blank=True)
     snapshot_at = models.DateTimeField(null=True, blank=True)
     customer_name = models.CharField(max_length=300, blank=True)
@@ -63,6 +83,18 @@ class Order(models.Model):
     delivery_phone = models.CharField(max_length=20, blank=True)
     delivery_address = models.TextField(blank=True)
     delivery_country = models.CharField(max_length=3, blank=True)
+    delivery_region = models.CharField(max_length=100, blank=True)
+    delivery_city = models.CharField(max_length=100, blank=True)
+    delivery_district = models.CharField(max_length=150, blank=True)
+    delivery_street = models.CharField(max_length=250, blank=True)
+    delivery_instructions = models.CharField(max_length=500, blank=True)
+    delivery_method_code = models.CharField(max_length=50, blank=True)
+    delivery_method_label = models.CharField(max_length=100, blank=True)
+    delivery_eta_min_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    delivery_eta_max_days = models.PositiveSmallIntegerField(null=True, blank=True)
+    billing_same_as_shipping = models.BooleanField(default=True)
+    billing_address = models.TextField(blank=True)
+    checkout_version = models.CharField(max_length=64, blank=True)
     subtotal_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
@@ -131,7 +163,12 @@ class Order(models.Model):
                 immutable = (
                     "snapshot_at", "customer_name", "customer_email",
                     "delivery_recipient_name", "delivery_phone", "delivery_address",
-                    "delivery_country", "subtotal_amount", "shipping_amount",
+                    "delivery_country", "delivery_region", "delivery_city",
+                    "delivery_district", "delivery_street", "delivery_instructions",
+                    "delivery_method_code", "delivery_method_label",
+                    "delivery_eta_min_days", "delivery_eta_max_days",
+                    "billing_same_as_shipping", "billing_address", "checkout_version",
+                    "subtotal_amount", "shipping_amount",
                     "discount_amount", "total_amount", "currency",
                 )
                 if any(getattr(self, field) != getattr(previous, field) for field in immutable):
@@ -149,7 +186,7 @@ class Order(models.Model):
 
 
 class OrderStatusHistory(models.Model):
-    objects = ProtectedCommercialQuerySet.as_manager()
+    objects = AppendOnlyCommercialQuerySet.as_manager()
     order = models.ForeignKey(
         Order, on_delete=models.PROTECT, related_name="status_history"
     )
@@ -161,6 +198,8 @@ class OrderStatusHistory(models.Model):
     actor_role_snapshot = models.CharField(max_length=30, blank=True)
     reason_code = models.CharField(max_length=50, blank=True)
     reason_note = models.TextField(blank=True)
+    source = models.CharField(max_length=50, blank=True)
+    correlation_id = models.CharField(max_length=64, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -176,6 +215,55 @@ class OrderStatusHistory(models.Model):
     def delete(self, *args, **kwargs):
         raise CommercialDataDeletionError(
             "L'historique commercial ne peut pas être supprimé."
+        )
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            raise CommercialDataDeletionError(
+                "L'historique commercial est append-only."
+            )
+        super().save(*args, **kwargs)
+
+
+class OrderNotificationReceipt(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_SENT = "sent"
+    STATUS_FAILED = "failed"
+    STATUS_CHOICES = (
+        (STATUS_PENDING, "Pending"),
+        (STATUS_SENT, "Sent"),
+        (STATUS_FAILED, "Failed"),
+    )
+
+    order = models.ForeignKey(
+        Order, on_delete=models.PROTECT, related_name="notification_receipts"
+    )
+    event_code = models.CharField(max_length=50)
+    channel = models.CharField(max_length=20, default="email")
+    recipient_hash = models.CharField(max_length=64)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+    attempts = models.PositiveSmallIntegerField(default=0)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    last_attempt_at = models.DateTimeField(null=True, blank=True)
+    failure_code = models.CharField(max_length=50, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "event_code", "channel"],
+                name="unique_order_notification_event_channel",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="order_notif_status_idx"),
+        ]
+
+    def delete(self, *args, **kwargs):
+        raise CommercialDataDeletionError(
+            "Les reçus de notification ne peuvent pas être supprimés."
         )
 
 
@@ -277,3 +365,41 @@ class OrderItem(models.Model):
         if price is None and self.product:
             price = self.product.price
         return (price or 0) * self.quantity
+
+
+class CartMergeReceipt(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.CASCADE, related_name="cart_merge_receipts"
+    )
+    idempotency_key = models.CharField(max_length=64)
+    request_fingerprint = models.CharField(max_length=64)
+    response_payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["customer", "idempotency_key"],
+                name="unique_cart_merge_key_per_customer",
+            ),
+        ]
+
+
+class CheckoutCreationReceipt(models.Model):
+    customer = models.ForeignKey(
+        Customer, on_delete=models.PROTECT, related_name="checkout_creation_receipts"
+    )
+    idempotency_key = models.CharField(max_length=64)
+    request_fingerprint = models.CharField(max_length=64)
+    order = models.ForeignKey(
+        Order, on_delete=models.PROTECT, related_name="checkout_creation_receipts"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["customer", "idempotency_key"],
+                name="unique_checkout_key_per_customer",
+            ),
+        ]

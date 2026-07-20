@@ -1,5 +1,6 @@
 import React from 'react';
 import ErrorFallback from './ErrorFallback';
+import { logger } from '../../utils/logger';
 
 class AppErrorBoundary extends React.Component {
   constructor(props) {
@@ -12,9 +13,7 @@ class AppErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    if (import.meta.env.DEV) {
-      console.error('AppErrorBoundary:', error, errorInfo);
-    }
+    logger.error('AppErrorBoundary:', error, errorInfo);
   }
 
   handleReset = () => {

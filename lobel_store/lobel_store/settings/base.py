@@ -181,6 +181,9 @@ REST_FRAMEWORK = {
         'email_activation': '10/hour',
         'password_change': '10/hour',
         'catalog_media_upload': '30/hour',
+        'payment_initialize': '10/minute',
+        'payment_refresh': '30/minute',
+        'payment_callback': '120/minute',
     },
     'NUM_PROXIES': env.int('DRF_NUM_PROXIES', default=0),
     'DEFAULT_PAGINATION_CLASS': 'lobel_store.pagination.StandardResultsSetPagination',
@@ -232,6 +235,15 @@ LIGDICASH_STORE_URL = ""
 LIGDICASH_RETURN_URL = ""
 LIGDICASH_CANCEL_URL = ""
 LIGDICASH_CALLBACK_URL = ""
+LIGDICASH_ENVIRONMENT = ""
+LIGDICASH_HTTP_TIMEOUT = 15
+LIGDICASH_VERIFY_TLS = True
+LIGDICASH_ALLOWED_CHECKOUT_HOSTS = ["app.ligdicash.com"]
+ORDER_PENDING_PAYMENT_TTL_MINUTES = env.int(
+    "ORDER_PENDING_PAYMENT_TTL_MINUTES", default=60
+)
+if ORDER_PENDING_PAYMENT_TTL_MINUTES <= 0:
+    raise ValueError("ORDER_PENDING_PAYMENT_TTL_MINUTES must be positive.")
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'

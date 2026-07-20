@@ -1,11 +1,11 @@
 from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Q
+from django.db.models import Max, Min, Q
 
 # Create your views here.
 # products/views.py
-from rest_framework import viewsets
+from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
@@ -13,11 +13,12 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.throttling import ScopedRateThrottle
 
 from orders import models
-from .models import Category, Product, ProductMedia
+from .models import Category, Color, Product, ProductMedia, ProductVariant, Size
 from .serializers import (
     CategorySerializer, ProductSerializer, ProductWriteSerializer,
     ProductMediaSerializer, ProductMediaCreateSerializer, ProductMediaUpdateSerializer,
     ProductListSerializer, ProductDetailSerializer, PublicMediaSerializer,
+    ColorSerializer, SizeSerializer,
 )
 from .models import Collection
 from .serializers import CollectionSerializer
@@ -108,6 +109,104 @@ class ProductViewSet(viewsets.ModelViewSet):
         page = self.paginate_queryset(products)
         serializer = self.get_serializer(page, many=True)
         return self.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="filter-options")
+    def filter_options(self, request):
+        """Return complete public filter facets, independently of the current page."""
+        today = timezone.now().date()
+        products = product_queryset(public=True, detail=False)
+        product_ids = products.order_by().values("pk")
+        variants = ProductVariant.objects.filter(
+            product_id__in=product_ids,
+            product__is_active=True,
+            product__category__is_active=True,
+            is_active=True,
+            stock__gt=0,
+        )
+        categories = Category.objects.filter(
+            is_active=True, products__in=product_ids
+        ).distinct().order_by("name", "id")
+        collections = Collection.objects.filter(
+            is_active=True, products__in=product_ids
+        ).filter(
+            Q(start_date__lte=today) | Q(start_date__isnull=True),
+            Q(end_date__gte=today) | Q(end_date__isnull=True),
+        ).distinct().order_by("name", "id")
+        colors = Color.objects.filter(
+            productvariant__in=variants, productvariant__color__isnull=False
+        ).distinct().order_by("name", "id")
+        sizes = Size.objects.filter(
+            productvariant__in=variants, productvariant__size__isnull=False
+        ).distinct().order_by("name", "id")
+        price_range = products.aggregate(min=Min("price"), max=Max("price"))
+
+        return Response({
+            "categories": CategorySerializer(categories, many=True).data,
+            "collections": [
+                {"id": item.id, "name": item.name, "slug": item.slug}
+                for item in collections
+            ],
+            "colors": ColorSerializer(colors, many=True).data,
+            "sizes": SizeSerializer(sizes, many=True).data,
+            "price": {
+                "min": str(price_range["min"]) if price_range["min"] is not None else None,
+                "max": str(price_range["max"]) if price_range["max"] is not None else None,
+            },
+        })
+
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="resolve-variants",
+        permission_classes=[permissions.AllowAny],
+    )
+    def resolve_variants(self, request):
+        ids = request.data.get("variant_ids")
+        if (
+            not isinstance(ids, list) or not ids or len(ids) > 50
+            or any(isinstance(item, bool) or not isinstance(item, int) or item < 1 for item in ids)
+        ):
+            return Response(
+                {"code": "invalid_variant_ids", "detail": "variant_ids doit contenir 1 à 50 identifiants."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        unique_ids = list(dict.fromkeys(ids))
+        variants = ProductVariant.objects.select_related(
+            "product", "color", "size"
+        ).prefetch_related("product__media_files").filter(pk__in=unique_ids)
+        by_id = {variant.pk: variant for variant in variants}
+        results = []
+        for variant_id in unique_ids:
+            variant = by_id.get(variant_id)
+            if variant is None:
+                continue
+            image = next(
+                (
+                    media for media in variant.product.media_files.all()
+                    if media.is_active and media.media_type == "image"
+                ),
+                None,
+            )
+            results.append({
+                "id": variant.id,
+                "product_id": variant.product_id,
+                "product_name": variant.product.name,
+                "sku": variant.sku,
+                "color": ColorSerializer(variant.color).data if variant.color else None,
+                "size": SizeSerializer(variant.size).data if variant.size else None,
+                "attributes": {},
+                "price": str(variant.effective_price),
+                "stock": variant.stock,
+                "is_available": bool(
+                    variant.is_active and variant.product.is_active and variant.stock > 0
+                ),
+                "image": (
+                    request.build_absolute_uri(image.file.url) if image and image.file else None
+                ),
+            })
+        return Response({"results": results, "missing_ids": [
+            variant_id for variant_id in unique_ids if variant_id not in by_id
+        ]})
     
 class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.filter(is_active=True)

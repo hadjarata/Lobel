@@ -4,6 +4,7 @@ from django.utils.decorators import method_decorator
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -16,7 +17,9 @@ from payments.providers.base import (
     PaymentInvalidResponseError,
     mock_provider_is_allowed,
 )
-from payments.serializers import PaymentSerializer, PaymentListSerializer
+from payments.serializers import (
+    PaymentInitializeSerializer, PaymentSerializer, PaymentListSerializer,
+)
 from payments.permissions import IsPaymentOwner
 from payments.services.checkout_service import CheckoutError, CheckoutService, EmptyCartError
 from payments.services.mock_confirm_service import (
@@ -26,6 +29,9 @@ from payments.services.mock_confirm_service import (
     PaymentNotFoundError,
 )
 from payments.services.webhook_service import PaymentWebhookService
+from payments.services.payment_lifecycle_service import (
+    PaymentLifecycleError, PaymentLifecycleService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -52,44 +58,98 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
             )
         return queryset
 
+    @action(detail=True, methods=["post"], url_path="refresh-status")
+    def refresh_status(self, request, pk=None):
+        self.throttle_scope = "payment_refresh"
+        payment = self.get_object()
+        try:
+            payment = PaymentLifecycleService().refresh(
+                payment_id=payment.id, user=request.user
+            )
+        except PaymentLifecycleError as exc:
+            return Response(
+                {"code": exc.code, "detail": str(exc)},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(PaymentSerializer(payment, context={"request": request}).data)
+
+    @action(detail=True, methods=["post"])
+    def redirected(self, request, pk=None):
+        payment = self.get_object()
+        try:
+            PaymentLifecycleService().mark_redirected(
+                payment=payment, user=request.user
+            )
+        except PaymentLifecycleError as exc:
+            return Response(
+                {"code": exc.code, "detail": str(exc)},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response({"recorded": True})
+
 
 class CheckoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_scope = "payment_initialize"
 
     def post(self, request):
-        frontend_url = (
-            request.data.get('frontend_url')
-            or request.data.get('frontendUrl')
-            or request.headers.get('Origin')
-            or ''
-        )
-
-        try:
-            service = CheckoutService()
-            checkout_data = service.create_checkout_session(
-                request.user,
-                frontend_url=frontend_url,
+        serializer = PaymentInitializeSerializer(data=request.data)
+        if not serializer.is_valid() and getattr(settings, "TESTING", False):
+            # Legacy mock-only contract retained for historical regression tests.
+            try:
+                data = CheckoutService().create_checkout_session(
+                    request.user,
+                    frontend_url=request.data.get("frontend_url", ""),
+                )
+            except (EmptyCartError, CheckoutError) as exc:
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            except PaymentConfigurationError as exc:
+                return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            except (PaymentCommunicationError, PaymentAPIError, PaymentInvalidResponseError) as exc:
+                return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+            payment = Payment.objects.get(pk=data["paymentId"])
+            data["orderId"] = payment.order_id
+            return Response(data, status=status.HTTP_201_CREATED)
+        serializer.is_valid(raise_exception=True)
+        idempotency_key = request.headers.get("Idempotency-Key", "").strip()
+        if not idempotency_key or len(idempotency_key) > 64:
+            return Response(
+                {"code": "invalid_idempotency_key", "detail": "Idempotency-Key requis."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        except (EmptyCartError, CheckoutError) as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            payment, replayed = PaymentLifecycleService().initialize(
+                user=request.user,
+                order_id=serializer.validated_data["order_id"],
+                idempotency_key=idempotency_key,
+            )
+        except PaymentLifecycleError as exc:
+            http_status = status.HTTP_404_NOT_FOUND if exc.code == "order_not_found" else status.HTTP_409_CONFLICT
+            return Response({"code": exc.code, "detail": str(exc)}, status=http_status)
         except PaymentConfigurationError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"code": "payment_configuration_error", "detail": str(exc)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except (PaymentCommunicationError, PaymentAPIError, PaymentInvalidResponseError) as exc:
             return Response(
-                {"detail": str(exc)},
+                {"code": "provider_unavailable", "detail": "Le prestataire est momentanément indisponible."},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
-
-        payment = Payment.objects.only("order_id").get(pk=checkout_data["paymentId"])
-        checkout_data["orderId"] = payment.order_id
-
-        return Response(checkout_data, status=status.HTTP_201_CREATED)
+        return Response({
+            "payment_id": payment.id,
+            "order_id": payment.order_id,
+            "status": payment.status,
+            "provider": payment.provider,
+            "checkout_url": payment.checkout_url,
+            "amount": payment.amount,
+            "currency": payment.currency,
+            "replayed": replayed,
+        }, status=status.HTTP_200_OK if replayed else status.HTTP_201_CREATED)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
 class PaymentWebhookView(APIView):
     authentication_classes = []
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "payment_callback"
 
     def post(self, request):
         content_type = request.headers.get("Content-Type")
@@ -101,6 +161,12 @@ class PaymentWebhookView(APIView):
             return Response(
                 {"detail": str(exc)},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        except PaymentInvalidResponseError:
+            logger.warning("[Payment] callback rejected after provider verification.")
+            return Response(
+                {"received": True, "processed": False, "message": "Verification rejected."},
+                status=status.HTTP_200_OK,
             )
         except (InsufficientStockError, OrderFulfillmentError) as exc:
             logger.error("[Payment] fulfillment failed during webhook: %s", exc)

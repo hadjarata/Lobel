@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Payment, PaymentWebhookEvent
+from .models import Payment, PaymentAuditEvent, PaymentWebhookEvent
 
 
 @admin.register(Payment)
@@ -32,3 +32,11 @@ class PaymentWebhookEventAdmin(PaymentAdmin):
     list_select_related = ("payment",)
     list_filter = ("event_type",)
     readonly_fields = [field.name for field in PaymentWebhookEvent._meta.fields]
+
+
+@admin.register(PaymentAuditEvent)
+class PaymentAuditEventAdmin(PaymentAdmin):
+    list_display = ("id", "payment", "event_type", "from_status", "to_status", "created_at")
+    list_select_related = ("payment",)
+    list_filter = ("event_type", "to_status")
+    readonly_fields = [field.name for field in PaymentAuditEvent._meta.fields]

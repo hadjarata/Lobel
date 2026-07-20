@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { toast } from './toast';
 import { springSnappy, toastVariants } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
@@ -28,7 +28,7 @@ const ToastProvider = ({ children }) => {
       <div className="toast-container" aria-live="polite" aria-atomic="true">
         <AnimatePresence mode="popLayout">
           {toasts.map((item) => (
-            <motion.div
+            <Motion.div
               key={item.id}
               layout
               variants={toastVariants}
@@ -54,7 +54,7 @@ const ToastProvider = ({ children }) => {
               >
                 ×
               </button>
-            </motion.div>
+            </Motion.div>
           ))}
         </AnimatePresence>
       </div>

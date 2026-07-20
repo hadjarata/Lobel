@@ -1,49 +1,25 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { addToCart } from '../../api/cart';
-import { toast } from '../../components/ui/toast';
 import { springTap } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
 import './ProductCard.css';
 
 const MotionButton = motion.button;
 
-const ProductCard = ({
-  id,
-  name,
-  price,
-  image,
-  video,
-  badge,
-  rating,
-  reviewCount,
-}) => {
-  const [isAdding, setIsAdding] = useState(false);
+const ProductCard = ({ id, name, price, image, video, badge, rating, reviewCount }) => {
+  const navigate = useNavigate();
   const tapTransition = useMotionTransition(springTap);
-  const displayPrice = Number(price || 0).toLocaleString('fr-FR', {
-    maximumFractionDigits: 0,
-  });
+  const numericPrice = Number(price);
+  const displayPrice = Number.isFinite(numericPrice)
+    ? numericPrice.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+    : '—';
   const stars = rating ? '★'.repeat(Math.round(rating)) : null;
 
-  const handleAddToCart = async (event) => {
+  const openDetail = (event) => {
     event.preventDefault();
     event.stopPropagation();
-
-    setIsAdding(true);
-
-    try {
-      await addToCart({
-        product_id: id,
-        quantity: 1,
-        product: { id, name, price, image },
-      });
-      toast.success('Produit ajouté au panier');
-    } catch (error) {
-      toast.error('Erreur lors de l\'ajout au panier');
-    } finally {
-      setIsAdding(false);
-    }
+    navigate(`/product/${id}`);
   };
 
   return (
@@ -52,53 +28,29 @@ const ProductCard = ({
         <div className="product-image-container">
           {badge && <span className="product-badge">{badge}</span>}
           {video ? (
-            <video
-              src={video}
-              className="product-video"
-              autoPlay
-              loop
-              muted
-              playsInline
-            />
+            <video src={video} className="product-video" muted playsInline preload="metadata" controls />
           ) : (
-            <img
-              src={image}
-              alt={name}
-              className="product-image"
-              loading="lazy"
-            />
+            <img src={image} alt={name} className="product-image" loading="lazy" />
           )}
         </div>
       </Link>
-
       <div className="product-card-body">
         <Link to={`/product/${id}`} className="product-card-link">
           <h3 className="product-card-title">{name}</h3>
         </Link>
-
         <div className="product-card-footer">
           <div>
             <span className="product-card-price">{displayPrice} FCFA</span>
             {(rating || reviewCount != null) && (
               <div className="product-card-rating">
                 {stars && <span className="product-rating-stars">{stars}</span>}
-                {reviewCount != null && (
-                  <span className="product-review-count">({reviewCount})</span>
-                )}
+                {reviewCount != null && <span className="product-review-count">({reviewCount})</span>}
               </div>
             )}
           </div>
-
-          <MotionButton
-            type="button"
-            className="product-add-button"
-            onClick={handleAddToCart}
-            aria-label="Ajouter au panier"
-            disabled={isAdding}
-            title="Ajouter au panier"
-            whileTap={isAdding ? undefined : { scale: 0.92 }}
-            transition={tapTransition}
-          >
+          <MotionButton type="button" className="product-add-button" onClick={openDetail}
+            aria-label={`Choisir les options de ${name}`} title="Choisir les options"
+            whileTap={{ scale: 0.92 }} transition={tapTransition}>
             <svg className="cart-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="9" cy="21" r="1" />
               <circle cx="20" cy="21" r="1" />

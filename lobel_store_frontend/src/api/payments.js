@@ -1,40 +1,39 @@
 import api from './axios';
 import { ENDPOINTS } from './endpoints';
-import { getFrontendOrigin } from '../config/api';
-import { throwApiValidationError } from '../utils/apiErrors';
+import { normalizeApiError } from '../utils/apiErrors';
+import { adaptPagination } from './pagination';
+import {
+  adaptCheckoutSession,
+  adaptPaymentDetail,
+  adaptPaymentListItem,
+} from './contracts/payments';
 
-export const initiateCheckout = async () => {
+export const initializePayment = async ({ orderId, idempotencyKey }) => {
   try {
-    const response = await api.post(ENDPOINTS.CHECKOUT, {
-      frontend_url: getFrontendOrigin(),
-    });
-    return response.data;
+    const { data } = await api.post(
+      ENDPOINTS.CHECKOUT,
+      { order_id: orderId },
+      {
+        skipAuthRefresh: true,
+        headers: { 'Idempotency-Key': idempotencyKey },
+      },
+    );
+    return adaptCheckoutSession(data);
   } catch (error) {
-    throwApiValidationError(error, 'Impossible de démarrer le paiement.');
+    throw normalizeApiError(error, 'Impossible de démarrer le paiement.');
   }
 };
-
-export const confirmMockPayment = async (paymentId) => {
-  const response = await api.post(ENDPOINTS.MOCK_CONFIRM, { paymentId });
-  return response.data;
-};
-
-export const createPayment = async (paymentData) => {
-  const response = await api.post(ENDPOINTS.PAYMENTS, paymentData);
-  return response.data;
-};
-
-export const getPayments = async () => {
-  const response = await api.get(ENDPOINTS.PAYMENTS);
-  return response.data;
-};
-
-export const getPaymentById = async (id) => {
-  const response = await api.get(ENDPOINTS.PAYMENT_DETAIL(id));
-  return response.data;
-};
-
-export const updatePayment = async (id, paymentData) => {
-  const response = await api.put(ENDPOINTS.PAYMENT_DETAIL(id), paymentData);
-  return response.data;
-};
+export const refreshPaymentStatus = (paymentId) => api.post(
+  ENDPOINTS.PAYMENT_REFRESH(paymentId), {}, { skipAuthRefresh: true },
+).then(({ data }) => adaptPaymentDetail(data));
+export const recordPaymentRedirect = (paymentId) => api.post(
+  ENDPOINTS.PAYMENT_REDIRECTED(paymentId), {}, { skipAuthRefresh: true },
+).then(({ data }) => data);
+export const confirmMockPayment = (paymentId) => api.post(
+  ENDPOINTS.MOCK_CONFIRM,
+  { paymentId },
+).then(({ data }) => data);
+export const getPayments = (filters = {}) => api.get(ENDPOINTS.PAYMENTS, { params: filters })
+  .then(({ data }) => adaptPagination(data, adaptPaymentListItem));
+export const getPaymentById = (id) => api.get(ENDPOINTS.PAYMENT_DETAIL(id))
+  .then(({ data }) => adaptPaymentDetail(data));

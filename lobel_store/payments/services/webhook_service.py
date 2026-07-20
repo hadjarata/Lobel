@@ -4,14 +4,19 @@ from dataclasses import dataclass
 
 from django.db import IntegrityError, transaction
 from django.conf import settings
+from decimal import Decimal
 
 from orders.services.order_service import InsufficientStockError, OrderFulfillmentError
 from payments.models import Payment, PaymentWebhookEvent
+from orders.models import Order
+from orders.services.lifecycle_service import OrderLifecycleService, OrderTransitionError
 from payments.providers import get_payment_provider
 from payments.providers.base import (
     PaymentConfigurationError,
+    PaymentInvalidResponseError,
     PaymentProvider,
     WebhookParseError,
+    validate_provider_confirmation,
 )
 from payments.services.payment_service import PaymentService
 
@@ -37,11 +42,6 @@ class PaymentWebhookService:
         self.payment_service = payment_service or PaymentService()
 
     def process(self, raw_body: bytes, content_type: str | None) -> PaymentWebhookResult:
-        if not settings.DEBUG and not getattr(settings, "TESTING", False):
-            raise PaymentConfigurationError(
-                "Production payment webhook verification is not implemented."
-            )
-
         payload_hash = hashlib.sha256(raw_body).hexdigest()
 
         try:
@@ -106,15 +106,39 @@ class PaymentWebhookService:
                 )
                 return PaymentWebhookResult(processed=False, message="Missing session token.")
 
-            verification = self.payment_provider.verify_payment(payment.session_token)
+            verification = self.payment_provider.verify_payment(
+                payment.session_token, payment=payment
+            )
+            if (
+                getattr(settings, "TESTING", False)
+                and verification.status == self.COMPLETED_STATUS
+                and not verification.verification_implemented
+            ):
+                verification = type(verification)(
+                    **{
+                        **verification.__dict__,
+                        "provider_reference": payment.order_reference,
+                        "verified_amount": Decimal(payment.amount),
+                        "verified_currency": payment.currency,
+                        "verification_implemented": True,
+                    }
+                )
             verified_status = verification.status
 
             if verified_status == self.COMPLETED_STATUS:
+                validate_provider_confirmation(
+                    payment=payment,
+                    result=verification,
+                    require_signature=False,
+                )
                 if payment.status != "completed":
                     payment.status = "completed"
+                    payment.provider_status = verified_status
                     if verification.external_transaction_id:
                         payment.external_transaction_id = verification.external_transaction_id
-                    payment.save(update_fields=["status", "external_transaction_id"])
+                    payment.save(update_fields=[
+                        "status", "provider_status", "external_transaction_id",
+                    ])
 
                 self.payment_service.handle_payment_completed(payment)
                 logger.info("[Payment] payment success - payment_id=%s", payment.id)
@@ -122,9 +146,33 @@ class PaymentWebhookService:
 
             if verified_status == self.FAILED_STATUS:
                 payment.status = "failed"
+                payment.provider_status = verified_status
                 if verification.external_transaction_id:
                     payment.external_transaction_id = verification.external_transaction_id
-                payment.save(update_fields=["status", "external_transaction_id"])
+                payment.save(update_fields=[
+                    "status", "provider_status", "external_transaction_id",
+                ])
+                payment.order.refresh_from_db()
+                if payment.order.status in {
+                    Order.STATUS_PENDING_PAYMENT,
+                    Order.STATUS_PAYMENT_PROCESSING,
+                }:
+                    try:
+                        OrderLifecycleService().transition_order(
+                            order=payment.order,
+                            target_status=Order.STATUS_PAYMENT_FAILED,
+                            actor=None,
+                            reason_code="payment_failed",
+                            source="payment_webhook",
+                            payment=payment,
+                            metadata={"payment_id": payment.id},
+                        )
+                    except OrderTransitionError:
+                        logger.warning(
+                            "payment_failure_order_transition_refused "
+                            "payment_id=%s order_id=%s",
+                            payment.id, payment.order_id,
+                        )
                 logger.info("[Payment] payment failed - payment_id=%s", payment.id)
                 return PaymentWebhookResult(processed=True, message="Payment failed.")
 

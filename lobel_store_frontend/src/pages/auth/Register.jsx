@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authState';
 import { validateRegister } from '../../api/auth';
 import Select from 'react-select';
 import PhoneInputModule from 'react-phone-input-2';
@@ -82,6 +82,11 @@ const Register = () => {
 
     try {
       await register(payload);
+      setRegisterData((previous) => ({
+        ...previous,
+        password: '',
+        confirm_password: '',
+      }));
     } catch (error) {
       if (error instanceof ApiValidationError) {
         applyApiFieldErrors(error.fieldErrors, setRegisterErrors);

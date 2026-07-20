@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../ui/Button';
+import { useAuth } from '../../context/authState';
 import './ProductInfo.css';
 
 const ProductInfo = ({ 
@@ -9,6 +10,7 @@ const ProductInfo = ({
   onBuyNow = () => {}
 }) => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -21,8 +23,7 @@ const ProductInfo = ({
     category = '',
     stock = 0,
     sizes = [],
-    colors = [],
-    images = []
+    colors = []
   } = product;
 
   const handleSizeChange = (size) => {
@@ -40,10 +41,7 @@ const ProductInfo = ({
   };
 
   const handleAddToCart = () => {
-    // Vérifier si l'utilisateur est connecté (simulation)
-    const isLoggedIn = localStorage.getItem('token'); // À remplacer par vrai contexte auth
-    
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }
@@ -62,10 +60,7 @@ const ProductInfo = ({
   };
 
   const handleBuyNow = () => {
-    // Vérifier si l'utilisateur est connecté (simulation)
-    const isLoggedIn = localStorage.getItem('token'); // À remplacer par vrai contexte auth
-    
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       navigate('/login');
       return;
     }

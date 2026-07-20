@@ -125,6 +125,44 @@
   border-bottom: 1px solid #F5F5DC;
 }
 
+button.filter-section-header {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.price-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.price-fields label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.price-fields input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+  border: 1px solid #aaa;
+  border-radius: 50%;
+  vertical-align: -2px;
+}
+
 .filter-section-title {
   font-size: 16px;
   font-weight: 600;

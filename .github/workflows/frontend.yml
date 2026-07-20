@@ -1,0 +1,64 @@
+name: Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lobel_store_frontend/**"
+      - ".github/workflows/frontend.yml"
+  pull_request:
+    paths:
+      - "lobel_store_frontend/**"
+      - ".github/workflows/frontend.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: lobel_store_frontend
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.17.0"
+          cache: npm
+          cache-dependency-path: lobel_store_frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:env
+      - run: npm run test:auth
+      - run: npm run test:contracts
+      - run: npm run test:catalog
+      - run: npm run test:cart
+      - run: npm run test:checkout
+      - run: npm run test:payments
+      - run: npm run test:orders
+      - run: npm test
+      - name: Reject frontend payment secrets
+        shell: bash
+        run: |
+          if rg -n 'VITE_.*(SECRET|TOKEN|KEY|MERCHANT)' src .env.example; then
+            echo "Forbidden payment secret variable found in frontend."
+            exit 1
+          fi
+      - name: Production must fail without required environment
+        shell: bash
+        run: |
+          if npm run build:production; then
+            echo "Production build unexpectedly succeeded without environment."
+            exit 1
+          fi
+      - name: Build production with safe public placeholders
+        run: npm run build:production
+        env:
+          VITE_APP_ENV: production
+          VITE_API_BASE_URL: https://api.example.invalid
+          VITE_ENABLE_PAYMENT_MOCK: "false"
+          VITE_ENABLE_DEBUG_LOGS: "false"
+      - run: npm audit

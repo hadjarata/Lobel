@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 
 # Create your models here.
@@ -23,9 +25,16 @@ class Payment(models.Model):
     )
 
     STATUS_CHOICES = (
+        ('created', 'Created'),
+        ('initializing', 'Initializing'),
         ('pending', 'Pending'),
+        ('redirect_required', 'Redirect required'),
+        ('processing', 'Processing'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+        ('expired', 'Expired'),
+        ('unknown', 'Unknown'),
     )
 
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='payments')
@@ -39,6 +48,32 @@ class Payment(models.Model):
     currency = models.CharField(max_length=3, default='XOF')
     processed_at = models.DateTimeField(null=True, blank=True)
     date_paid = models.DateTimeField(auto_now_add=True)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    merchant_reference = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    idempotency_key = models.CharField(max_length=64, blank=True)
+    request_fingerprint = models.CharField(max_length=64, blank=True)
+    provider_status = models.CharField(max_length=50, blank=True)
+    checkout_url = models.URLField(max_length=1000, blank=True)
+    initialized_at = models.DateTimeField(null=True, blank=True)
+    redirected_at = models.DateTimeField(null=True, blank=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    failed_at = models.DateTimeField(null=True, blank=True)
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    expired_at = models.DateTimeField(null=True, blank=True)
+    last_checked_at = models.DateTimeField(null=True, blank=True)
+    failure_code = models.CharField(max_length=100, blank=True)
+    failure_message = models.CharField(max_length=500, blank=True)
+    provider_payload = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["order", "idempotency_key"],
+                condition=~models.Q(idempotency_key=""),
+                name="unique_payment_key_per_order",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.status} - {self.amount} for Order {self.order.id}"
@@ -46,6 +81,26 @@ class Payment(models.Model):
     def delete(self, *args, **kwargs):
         raise CommercialDataDeletionError(
             "Un paiement ne peut pas être supprimé."
+        )
+
+
+class PaymentAuditEvent(models.Model):
+    objects = ProtectedCommercialQuerySet.as_manager()
+    payment = models.ForeignKey(
+        Payment, on_delete=models.PROTECT, related_name="audit_events"
+    )
+    event_type = models.CharField(max_length=50)
+    from_status = models.CharField(max_length=20, blank=True)
+    to_status = models.CharField(max_length=20, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+
+    def delete(self, *args, **kwargs):
+        raise CommercialDataDeletionError(
+            "Un événement d'audit de paiement ne peut pas être supprimé."
         )
 
 

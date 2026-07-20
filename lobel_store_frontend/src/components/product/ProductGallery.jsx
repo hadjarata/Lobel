@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import {
   backdropVariants,
   springModal,
@@ -7,6 +7,7 @@ import {
   zoomModalVariants,
 } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
+import { logger } from '../../utils/logger';
 import './ProductGallery.css';
 
 const ProductGallery = ({ media, productName }) => {
@@ -19,8 +20,10 @@ const ProductGallery = ({ media, productName }) => {
   // S'assurer que l'index est valide quand les médias changent
   useEffect(() => {
     if (media && media.length > 0 && currentMediaIndex >= media.length) {
-      setCurrentMediaIndex(0);
+      const timeoutId = window.setTimeout(() => setCurrentMediaIndex(0), 0);
+      return () => window.clearTimeout(timeoutId);
     }
+    return undefined;
   }, [media, currentMediaIndex]);
 
   const currentMedia = media && media.length > 0 ? media[currentMediaIndex] : null;
@@ -128,7 +131,7 @@ const ProductGallery = ({ media, productName }) => {
               loading="lazy"
               style={{ objectFit: 'cover' }}
               onError={(e) => {
-                console.warn('Erreur de chargement image:', currentMedia.url);
+                logger.warn('Erreur de chargement image:', currentMedia.url);
                 e.target.style.display = 'none';
               }}
             />
@@ -145,7 +148,7 @@ const ProductGallery = ({ media, productName }) => {
               controls={true}
               style={{ objectFit: 'contain' }}
               onError={(e) => {
-                console.warn('Erreur de chargement vidéo:', currentMedia.url);
+                logger.warn('Erreur de chargement vidéo:', currentMedia.url);
                 e.target.style.display = 'none';
               }}
             >
@@ -216,7 +219,7 @@ const ProductGallery = ({ media, productName }) => {
                     loading="lazy"
                     style={{ objectFit: 'cover' }}
                     onError={(e) => {
-                      console.warn('Erreur thumbnail image:', item.url);
+                      logger.warn('Erreur thumbnail image:', item.url);
                       e.target.style.display = 'none';
                     }}
                   />
@@ -230,7 +233,7 @@ const ProductGallery = ({ media, productName }) => {
                       playsInline
                       style={{ objectFit: 'cover' }}
                       onError={(e) => {
-                        console.warn('Erreur thumbnail vidéo:', item.url);
+                        logger.warn('Erreur thumbnail vidéo:', item.url);
                         e.target.style.display = 'none';
                       }}
                     />
@@ -251,7 +254,7 @@ const ProductGallery = ({ media, productName }) => {
 
       <AnimatePresence>
         {isZoomed && (
-          <motion.div
+          <Motion.div
             className="zoom-overlay"
             onClick={() => setIsZoomed(false)}
             variants={backdropVariants}
@@ -260,7 +263,7 @@ const ProductGallery = ({ media, productName }) => {
             exit="exit"
             transition={overlayTransition}
           >
-            <motion.div
+            <Motion.div
               className="zoomed-image-container"
               variants={zoomModalVariants}
               initial="initial"
@@ -276,11 +279,11 @@ const ProductGallery = ({ media, productName }) => {
                   className="zoomed-image"
                 />
               )}
-            </motion.div>
+            </Motion.div>
             <button className="zoom-close" onClick={() => setIsZoomed(false)}>
               ✕
             </button>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>

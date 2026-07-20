@@ -41,6 +41,12 @@ jobs:
       - run: python manage.py check
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py test
+      - run: python manage.py generate_swagger /tmp/openapi.yml -f yaml -o
+      - run: grep -q "/payments/checkout/" /tmp/openapi.yml
+      - run: grep -q "/orders/orders/{id}/receipt/" /tmp/openapi.yml
+      - run: python manage.py reconcile_payments --dry-run --age-minutes 0 --limit 10
+      - run: python manage.py expire_pending_orders --dry-run --older-than 1 --limit 10
+      - run: python manage.py retry_order_notifications --dry-run --limit 10
 
   production-check:
     runs-on: ubuntu-latest
@@ -59,9 +65,9 @@ jobs:
       DATABASE_SSLMODE: require
       DJANGO_CORS_ALLOWED_ORIGINS: https://shop.example.com
       DJANGO_CSRF_TRUSTED_ORIGINS: https://shop.example.com
-          DJANGO_SECURE_HSTS_SECONDS: "31536000"
-          DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: "true"
-          DJANGO_SECURE_HSTS_PRELOAD: "true"
+      DJANGO_SECURE_HSTS_SECONDS: "31536000"
+      DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS: "true"
+      DJANGO_SECURE_HSTS_PRELOAD: "true"
       EMAIL_HOST: smtp.example.com
       EMAIL_PORT: "587"
       EMAIL_HOST_USER: ci-user
@@ -74,12 +80,16 @@ jobs:
       PAYMENT_PROVIDER: ligdicash
       LIGDICASH_API_KEY: ci-placeholder
       LIGDICASH_API_TOKEN: ci-placeholder
-      LIGDICASH_BASE_URL: https://payments.example.com
+      LIGDICASH_BASE_URL: https://app.ligdicash.com
       LIGDICASH_STORE_NAME: CI
       LIGDICASH_STORE_URL: https://shop.example.com
       LIGDICASH_RETURN_URL: https://shop.example.com/payment/return
       LIGDICASH_CANCEL_URL: https://shop.example.com/payment/cancel
       LIGDICASH_CALLBACK_URL: https://api.example.com/payment/callback
+      LIGDICASH_ENVIRONMENT: production
+      LIGDICASH_HTTP_TIMEOUT: "15"
+      LIGDICASH_VERIFY_TLS: "true"
+      LIGDICASH_ALLOWED_CHECKOUT_HOSTS: app.ligdicash.com
       MEDIA_STORAGE_BACKEND: local
       MEDIA_LOCAL_STORAGE_IS_PERSISTENT: "true"
       MEDIA_PERSISTENT_ROOT: /tmp/lobelstore-media

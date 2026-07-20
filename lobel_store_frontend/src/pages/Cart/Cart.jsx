@@ -1,303 +1,142 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  fetchCart,
-  removeCartItem,
-  updateCartItemQuantity,
-} from '../../api/cart';
-import { useAuth } from '../../context/AuthContext';
-import { toast } from '../../components/ui/toast';
-import { getProductImageUrl } from '../../utils/mediaUtils';
+import { useCart } from '../../cart/cartState';
+import { useAuth } from '../../context/authState';
 import './Cart.css';
 
-const formatPrice = (value) =>
-  Number(value || 0).toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+const money = (value, currency = 'XOF') => {
+  if (value == null) return '—';
+  return `${String(value)} ${currency}`;
+};
 
 const Cart = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const [cart, setCart] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [busyItemId, setBusyItemId] = useState(null);
+  const {
+    status, cart, lines, itemCount, isGuest, error, lineErrors,
+    pendingLines, mergeReport, updateItemQuantity, removeItem, reloadCart,
+  } = useCart();
+  const announcement = useRef(null);
+  const loading = status === 'idle' || status === 'loading';
+  const hasInvalidLine = lines.some((line) => line.invalid || lineErrors[line.id] || lineErrors[line.variant_id]);
 
-  const loadCart = useCallback(async ({ notify = false } = {}) => {
+  const changeQuantity = async (item, delta) => {
+    const quantity = item.quantity + delta;
+    if (quantity < 1) return;
     try {
-      setError('');
-      const cartData = await fetchCart({ notify });
-      setCart(cartData);
-      return cartData;
-    } catch (err) {
-      console.error('Error fetching cart:', err);
-      setError('Impossible de charger le panier.');
-      return null;
-    }
-  }, []);
-
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      await loadCart({ notify: false });
-      setLoading(false);
-    };
-
-    init();
-
-    const handleCartUpdated = () => {
-      loadCart({ notify: false });
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdated);
-    return () => window.removeEventListener('cartUpdated', handleCartUpdated);
-  }, [loadCart]);
-
-  const items = cart?.items ?? [];
-  const itemCount = cart?.cart_items ?? items.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cart?.cart_total ?? 0;
-
-  const handleQuantityChange = async (item, delta) => {
-    const nextQuantity = item.quantity + delta;
-
-    if (nextQuantity < 1) {
-      await handleRemoveItem(item);
-      return;
-    }
-
-    setBusyItemId(item.id);
-
-    try {
-      await updateCartItemQuantity(item, nextQuantity);
-      await loadCart({ notify: true });
-    } catch (err) {
-      console.error('Error updating quantity:', err);
-      toast.error('Impossible de mettre à jour la quantité.');
-    } finally {
-      setBusyItemId(null);
+      await updateItemQuantity(item, quantity);
+      if (announcement.current) announcement.current.textContent = 'Quantité mise à jour.';
+    } catch {
+      if (announcement.current) announcement.current.textContent = 'La quantité n’a pas été modifiée.';
     }
   };
 
-  const handleRemoveItem = async (item) => {
-    setBusyItemId(item.id);
-
+  const remove = async (item) => {
+    const nextFocus = document.querySelector(`[data-cart-line]:not([data-cart-line="${item.id}"]) button`);
     try {
-      await removeCartItem(item);
-      await loadCart({ notify: true });
-      toast.success('Article retiré du panier');
-    } catch (err) {
-      console.error('Error removing item:', err);
-      toast.error('Impossible de retirer cet article.');
-    } finally {
-      setBusyItemId(null);
+      await removeItem(item);
+      if (announcement.current) announcement.current.textContent = 'Article retiré du panier.';
+      nextFocus?.focus();
+    } catch {
+      if (announcement.current) announcement.current.textContent = 'La suppression a échoué.';
     }
   };
-
-  const handleCheckout = () => {
-    if (!isAuthenticated) {
-      navigate('/login', {
-        state: {
-          from: { pathname: '/checkout' },
-          message: 'Connectez-vous pour finaliser votre commande. Votre panier sera conservé.',
-        },
-      });
-      return;
-    }
-
-    navigate('/checkout');
-  };
-
-  const renderEmptyState = (message, showCta = true) => (
-    <div className="cart-empty">
-      <div className="cart-empty-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z" />
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <path d="M16 10a4 4 0 0 1-8 0" />
-        </svg>
-      </div>
-      <h2 className="cart-empty-title">{message}</h2>
-      <p className="cart-empty-text">
-        Parcourez nos collections et trouvez la pièce qui vous correspond.
-      </p>
-      {showCta && (
-        <Link to="/shop" className="cart-btn cart-btn-primary">
-          Découvrir la boutique
-        </Link>
-      )}
-    </div>
-  );
 
   return (
-    <div className="cart-page">
+    <main className="cart-page">
       <header className="cart-header">
         <div className="cart-header-text">
           <p className="cart-eyebrow">Votre sélection</p>
-          <h1 className="cart-title">Mon Panier</h1>
-          {!loading && !error && items.length > 0 && (
-            <p className="cart-subtitle">
-              {itemCount} article{itemCount > 1 ? 's' : ''} · Total {formatPrice(cartTotal)} FCFA
-            </p>
-          )}
+          <h1 className="cart-title">Mon panier</h1>
+          {!loading && <p className="cart-subtitle">{itemCount} unité{itemCount > 1 ? 's' : ''}</p>}
         </div>
-        {!loading && items.length > 0 && (
-          <Link to="/shop" className="cart-continue-link">
-            Continuer mes achats
-          </Link>
-        )}
+        <Link to="/shop" className="cart-continue-link">Continuer mes achats</Link>
       </header>
-
-      {loading ? (
-        <div className="cart-loading">
-          <div className="cart-spinner" />
-          <p>Chargement de votre panier...</p>
+      <div ref={announcement} className="sr-only" role="status" aria-live="polite" />
+      {mergeReport && (mergeReport.adjusted_items.length > 0 || mergeReport.rejected_items.length > 0) && (
+        <div className="cart-merge-report" role="status">
+          Le panier a été synchronisé. Certaines quantités ont été ajustées ou conservées
+          localement faute de disponibilité.
         </div>
+      )}
+      {loading ? (
+        <div className="cart-loading" aria-live="polite"><div className="cart-spinner" /><p>Chargement du panier…</p></div>
       ) : error ? (
-        renderEmptyState(error, false)
-      ) : items.length === 0 ? (
-        renderEmptyState('Votre panier est vide')
+        <div className="shop-error" role="alert"><p>{error.message}</p><button onClick={reloadCart}>Réessayer</button></div>
+      ) : lines.length === 0 ? (
+        <div className="cart-empty">
+          <h2 className="cart-empty-title">Votre panier est vide</h2>
+          <Link to="/shop" className="cart-btn cart-btn-primary">Découvrir la boutique</Link>
+        </div>
       ) : (
         <div className="cart-layout">
           <section className="cart-items-panel" aria-label="Articles du panier">
             <ul className="cart-item-list">
-              {items.map((item) => {
-                const unitPrice = Number(item.product?.price || 0);
-                const lineTotal = unitPrice * item.quantity;
-                const isBusy = busyItemId === item.id;
-                const productId = item.product?.id;
-                const productName = item.product?.name || 'Produit';
-                const productImage = getProductImageUrl(item.product);
-
+              {lines.map((item) => {
+                const key = item.id;
+                const busy = pendingLines.includes(key);
+                const itemError = lineErrors[key] || lineErrors[item.variant_id];
                 return (
-                  <li key={item.id} className="cart-item">
-                    {productId ? (
-                      <Link to={`/product/${productId}`} className="cart-item-media">
-                        {productImage ? (
-                          <img src={productImage} alt={productName} />
-                        ) : (
-                          <div className="cart-item-media-placeholder">LOBEL</div>
-                        )}
-                      </Link>
-                    ) : (
-                      <div className="cart-item-media">
-                        {productImage ? (
-                          <img src={productImage} alt={productName} />
-                        ) : (
-                          <div className="cart-item-media-placeholder">LOBEL</div>
-                        )}
-                      </div>
-                    )}
-
+                  <li key={key} className={`cart-item ${item.invalid ? 'invalid' : ''}`} data-cart-line={key}>
+                    <div className="cart-item-media">
+                      {item.image ? <img src={item.image} alt="" /> : <div className="cart-item-media-placeholder">LOBEL</div>}
+                    </div>
                     <div className="cart-item-body">
                       <div className="cart-item-top">
-                        {productId ? (
-                          <Link to={`/product/${productId}`} className="cart-item-name">
-                            {productName}
-                          </Link>
-                        ) : (
-                          <h2 className="cart-item-name">{productName}</h2>
-                        )}
-                        <button
-                          type="button"
-                          className="cart-item-remove"
-                          onClick={() => handleRemoveItem(item)}
-                          disabled={isBusy}
-                          aria-label={`Retirer ${productName} du panier`}
-                        >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                            <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-                            <line x1="10" y1="11" x2="10" y2="17" />
-                            <line x1="14" y1="11" x2="14" y2="17" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      <p className="cart-item-unit-price">
-                        {formatPrice(unitPrice)} FCFA / unité
-                      </p>
-
-                      <div className="cart-item-actions">
-                        <div className="cart-qty-control">
-                          <button
-                            type="button"
-                            className="cart-qty-btn"
-                            onClick={() => handleQuantityChange(item, -1)}
-                            disabled={isBusy}
-                            aria-label="Diminuer la quantité"
-                          >
-                            −
-                          </button>
-                          <span className="cart-qty-value">{item.quantity}</span>
-                          <button
-                            type="button"
-                            className="cart-qty-btn"
-                            onClick={() => handleQuantityChange(item, 1)}
-                            disabled={isBusy}
-                            aria-label="Augmenter la quantité"
-                          >
-                            +
-                          </button>
+                        <div>
+                          <h2 className="cart-item-name">{item.product_name || 'Produit indisponible'}</h2>
+                          {item.variant_name && <p>{item.variant_name}</p>}
+                          {item.sku && <p>SKU : {item.sku}</p>}
                         </div>
-
+                        <button type="button" className="cart-item-remove" disabled={busy}
+                          aria-label={`Retirer ${item.product_name || 'cet article'}`}
+                          onClick={() => remove(item)}>×</button>
+                      </div>
+                      <p className="cart-item-unit-price">Prix unitaire : {money(item.unit_price, item.currency)}</p>
+                      <div className="cart-item-actions">
+                        <div className="cart-qty-control" aria-label={`Quantité de ${item.product_name || 'l’article'}`}>
+                          <button type="button" className="cart-qty-btn" disabled={busy || item.quantity <= 1 || item.invalid}
+                            aria-label="Diminuer la quantité" onClick={() => changeQuantity(item, -1)}>−</button>
+                          <span className="cart-qty-value" aria-live="polite">{item.quantity}</span>
+                          <button type="button" className="cart-qty-btn" disabled={busy || item.invalid}
+                            aria-label="Augmenter la quantité" onClick={() => changeQuantity(item, 1)}>+</button>
+                        </div>
                         <p className="cart-item-line-total">
-                          {formatPrice(lineTotal)} <span>FCFA</span>
+                          {isGuest ? 'Confirmé après connexion' : money(item.line_total, item.currency)}
                         </p>
                       </div>
+                      {itemError && <p id={`cart-error-${key}`} className="cart-line-error" role="alert">{itemError.message}</p>}
                     </div>
                   </li>
                 );
               })}
             </ul>
           </section>
-
           <aside className="cart-summary-panel" aria-label="Récapitulatif">
             <div className="cart-summary-card">
               <h2 className="cart-summary-title">Récapitulatif</h2>
-
               <dl className="cart-summary-rows">
-                <div className="cart-summary-row">
-                  <dt>Sous-total</dt>
-                  <dd>{formatPrice(cartTotal)} FCFA</dd>
-                </div>
-                <div className="cart-summary-row">
-                  <dt>Articles</dt>
-                  <dd>{itemCount}</dd>
-                </div>
-                <div className="cart-summary-row cart-summary-row-muted">
-                  <dt>Livraison</dt>
-                  <dd>Calculée à l&apos;étape suivante</dd>
+                <div className="cart-summary-row"><dt>Unités</dt><dd>{itemCount}</dd></div>
+                <div className="cart-summary-row"><dt>Total</dt>
+                  <dd>{isGuest ? 'Confirmé après connexion' : money(cart.cart_total, cart.currency)}</dd>
                 </div>
               </dl>
-
-              <div className="cart-summary-total">
-                <span>Total</span>
-                <strong>{formatPrice(cartTotal)} FCFA</strong>
-              </div>
-
-              <button
-                type="button"
-                className="cart-btn cart-btn-primary cart-btn-full"
-                onClick={handleCheckout}
-              >
-                Passer au paiement
+              <button type="button" className="cart-btn cart-btn-primary cart-btn-full"
+                disabled={hasInvalidLine || lines.length === 0}
+                onClick={() => navigate(isAuthenticated ? '/checkout' : '/login', {
+                  state: !isAuthenticated ? {
+                    from: { pathname: '/checkout' },
+                    message: 'Connectez-vous pour synchroniser et finaliser votre panier.',
+                  } : undefined,
+                })}>
+                {isAuthenticated ? 'Continuer vers le checkout' : 'Se connecter pour continuer'}
               </button>
-
-              {!isAuthenticated && items.length > 0 && (
-                <p className="cart-guest-note">
-                  Connexion requise uniquement pour finaliser la commande.
-                </p>
-              )}
-
-              <Link to="/shop" className="cart-btn cart-btn-ghost cart-btn-full">
-                Continuer mes achats
-              </Link>
-
-              <p className="cart-summary-note">
-                Paiement sécurisé · Confirmation par e-mail
-              </p>
+              {hasInvalidLine && <p>Corrigez ou retirez les lignes indisponibles avant de continuer.</p>}
             </div>
           </aside>
         </div>
       )}
-    </div>
+    </main>
   );
 };
 

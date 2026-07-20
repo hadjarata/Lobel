@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ProductCard from '../product/ProductCard';
 import { getNewProducts } from '../../api/products';
+import { logger } from '../../utils/logger';
 import './NewProductsSection.css';
 
 const getColumnCount = (width) => {
@@ -22,11 +23,11 @@ const NewProductsSection = () => {
         setLoading(true);
         setError(null);
         const data = await getNewProducts();
-        const productsArray = Array.isArray(data) ? data : data?.results || [];
+        const productsArray = data;
         setProducts(productsArray);
       } catch (err) {
         setError('Impossible de charger les nouveautés');
-        console.error('Error fetching new products:', err);
+        logger.error('Error fetching new products:', err);
       } finally {
         setLoading(false);
       }
@@ -87,6 +88,7 @@ const NewProductsSection = () => {
                   name={product.name}
                   price={product.price}
                   image={product.image}
+                  variants={product.variants}
                   video={product.video}
                   salesCount={product.sales_count}
                 />

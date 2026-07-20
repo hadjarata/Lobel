@@ -56,7 +56,7 @@ class PaymentProviderConfigurationTests(SimpleTestCase):
 
     @override_settings(DEBUG=False, TESTING=False, PAYMENT_PROVIDER="ligdicash")
     def test_real_provider_is_accepted_but_confirmations_remain_fail_closed(self):
-        self.assertEqual(payment_configuration_check(None), [])
+        self.assertEqual(payment_configuration_check(None)[0].id, "payments.E004")
 
 
 class ProviderConfirmationValidationTests(SimpleTestCase):
@@ -175,10 +175,7 @@ class ProductionPaymentEndpointTests(APITestCase):
             data=json.dumps(payload).encode("utf-8"),
             content_type="application/json",
         )
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.payment.refresh_from_db()
         self.order.refresh_from_db()

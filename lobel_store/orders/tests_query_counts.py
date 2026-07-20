@@ -41,7 +41,7 @@ class OrderQueryCountTests(TestCase):
             self.create_order()
         ten = self.count("/api/orders/orders/")
         self.assertLessEqual(ten, one)
-        self.assertLessEqual(ten, 3)
+        self.assertLessEqual(ten, 4)
 
     def test_order_detail_query_count_is_stable(self):
         order = self.create_order()

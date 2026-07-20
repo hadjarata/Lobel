@@ -1,15 +1,3 @@
-export const normalizeApiList = (data) => {
-  if (Array.isArray(data)) {
-    return data;
-  }
-
-  if (Array.isArray(data?.results)) {
-    return data.results;
-  }
-
-  return [];
-};
-
 export const resolveCollectionRef = (collections, slugOrId) => {
   if (!slugOrId || !Array.isArray(collections)) {
     return null;

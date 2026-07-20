@@ -1,13 +1,17 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authState';
+import { AUTH_STATUS } from '../../auth/authConstants';
 
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { status } = useAuth();
   const location = useLocation();
 
-  if (!isAuthenticated) {
-    // Rediriger vers login avec l'URL de retour
+  if (status === AUTH_STATUS.INITIALIZING) {
+    return <div role="status" aria-live="polite">Chargement de votre session…</div>;
+  }
+
+  if (status === AUTH_STATUS.ANONYMOUS) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

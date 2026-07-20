@@ -1,76 +1,53 @@
-import api from "./axios";
+import api from './axios';
 import { ENDPOINTS } from './endpoints';
+import { adaptPagination, buildListParams } from './pagination';
+import {
+  adaptCategory,
+  adaptCollection,
+  adaptProductDetail,
+  adaptProductListItem,
+} from './contracts/catalog';
 
-// récupérer tous les produits
-export const getProducts = async () => {
-  const response = await api.get(ENDPOINTS.PRODUCTS);
-  return response.data;
-};
+const getProductPage = (endpoint, filters = {}, requestConfig = {}) => api.get(endpoint, {
+  ...requestConfig,
+  params: buildListParams(filters),
+}).then(({ data }) => adaptPagination(data, adaptProductListItem));
 
-// récupérer un produit
-export const getProductById = async (id) => {
-  const response = await api.get(ENDPOINTS.PRODUCT_DETAIL(id));
-  return response.data;
-};
+export const getProducts = (filters = {}, requestConfig = {}) => getProductPage(
+  ENDPOINTS.PRODUCTS, filters, requestConfig,
+);
+export const getProductById = (id, requestConfig = {}) => api.get(
+  ENDPOINTS.PRODUCT_DETAIL(id), requestConfig,
+)
+  .then(({ data }) => adaptProductDetail(data));
+export const getBestSellers = (limit = 4) => getProductPage(
+  ENDPOINTS.BESTSELLERS,
+  { page_size: limit },
+).then(({ results }) => results);
+export const getNewProducts = (limit) => getProductPage(
+  ENDPOINTS.NEW_PRODUCTS,
+  limit ? { page_size: limit } : {},
+).then(({ results }) => results);
+export const getCategories = (filters = {}) => api.get(ENDPOINTS.CATEGORIES, {
+  params: buildListParams(filters),
+}).then(({ data }) => adaptPagination(data, adaptCategory));
+export const getProductsByCategory = (categoryId, filters = {}) => getProductPage(
+  ENDPOINTS.PRODUCTS,
+  { ...filters, category: categoryId },
+);
+export const getCollections = (filters = {}) => api.get(ENDPOINTS.COLLECTIONS, {
+  params: buildListParams(filters),
+}).then(({ data }) => adaptPagination(data, adaptCollection));
+export const getProductsByCollection = (collection, filters = {}) => getProductPage(
+  ENDPOINTS.PRODUCTS,
+  { ...filters, collection },
+);
+export const searchProducts = (search, filters = {}) => getProductPage(
+  ENDPOINTS.PRODUCTS,
+  { ...filters, search },
+);
 
-// récupérer les best sellers (produits les plus vendus) - filtrage côté client
-export const getBestSellers = async (limit = 4) => {
-  const response = await api.get(`${ENDPOINTS.PRODUCTS}?limit=${limit}`);
-  // Filtrer côté client pour les best sellers (sales_count > 0)
-  const allProducts = response.data.results || response.data;
-  const bestSellers = allProducts
-    .filter(product => product.sales_count > 0)
-    .sort((a, b) => b.sales_count - a.sales_count)
-    .slice(0, limit);
-  return bestSellers;
-};
-
-// récupérer les nouveautés via endpoint automatique
-export const getNewProducts = async () => {
-  try {
-    const response = await api.get(ENDPOINTS.NEW_PRODUCTS);
-
-    // gérer les deux formats possibles
-    const products = response.data.results || response.data;
-
-    if (!Array.isArray(products)) {
-      console.warn("API response is not an array:", products);
-      return [];
-    }
-
-    return products; // retourner tous les produits
-  } catch (error) {
-    console.error("Error in getNewProducts:", error);
-    throw error;
-  }
-};
-
-// récupérer les catégories
-export const getCategories = async () => {
-  const response = await api.get(ENDPOINTS.CATEGORIES);
-  return response.data;
-};
-
-// récupérer les produits par catégorie
-export const getProductsByCategory = async (categoryId) => {
-  const response = await api.get(ENDPOINTS.CATEGORY_PRODUCTS(categoryId));
-  return response.data;
-};
-
-// récupérer les collections
-export const getCollections = async () => {
-  const response = await api.get(ENDPOINTS.COLLECTIONS);
-  return response.data;
-};
-
-// récupérer les produits par collection
-export const getProductsByCollection = async (collectionId) => {
-  const response = await api.get(ENDPOINTS.COLLECTION_PRODUCTS(collectionId));
-  return response.data;
-};
-
-// rechercher des produits
-export const searchProducts = async (query) => {
-  const response = await api.get(`${ENDPOINTS.PRODUCTS}?search=${query}`);
-  return response.data;
-};
+export const getCatalogFilterOptions = (requestConfig = {}) => api.get(
+  ENDPOINTS.PRODUCT_FILTER_OPTIONS,
+  requestConfig,
+).then(({ data }) => data);

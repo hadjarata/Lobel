@@ -1,5 +1,6 @@
 import json
 import logging
+from decimal import Decimal
 from typing import Any
 from urllib import error, parse, request
 
@@ -37,7 +38,7 @@ class LigdicashProvider(PaymentProvider):
         return_url: str | None = None,
         cancel_url: str | None = None,
         callback_url: str | None = None,
-        timeout: int = 15,
+        timeout: int | None = None,
     ):
         self.api_key = api_key if api_key is not None else settings.LIGDICASH_API_KEY
         self.api_token = api_token if api_token is not None else settings.LIGDICASH_API_TOKEN
@@ -51,7 +52,7 @@ class LigdicashProvider(PaymentProvider):
         self.callback_url = (
             callback_url if callback_url is not None else settings.LIGDICASH_CALLBACK_URL
         )
-        self.timeout = timeout
+        self.timeout = timeout if timeout is not None else settings.LIGDICASH_HTTP_TIMEOUT
 
     def create_checkout(self, context: CheckoutContext) -> CheckoutSessionResult:
         self._validate_configuration()
@@ -80,9 +81,18 @@ class LigdicashProvider(PaymentProvider):
         url = f"{self.base_url}{self.CONFIRM_PATH}?{params}"
         response = self._get_json(url)
 
-        status = str(response.get("status", "pending"))
+        status = str(response.get("status", "pending")).lower()
         response_code = str(response.get("response_code", ""))
         external_transaction_id = response.get("request_id") or response.get("external_id")
+        invoice = response.get("invoice") if isinstance(response.get("invoice"), dict) else {}
+        custom_data = response.get("custom_data")
+        entries = self._normalize_custom_data(custom_data)
+        amount = invoice.get("total_amount", response.get("total_amount"))
+        currency = invoice.get("devise", response.get("devise", "XOF"))
+        provider_reference = (
+            invoice.get("external_id") or response.get("external_id")
+            or entries.get("transaction_id")
+        )
 
         logger.info(
             "[Payment] payment verified - provider=%s token=%s status=%s response_code=%s",
@@ -98,9 +108,14 @@ class LigdicashProvider(PaymentProvider):
             external_transaction_id=str(external_transaction_id) if external_transaction_id else None,
             raw=response,
             provider=self.provider_name,
-            # Official amount, currency and signature fields are intentionally
-            # unset until the LigdiCash verification contract is integrated.
-            verification_implemented=False,
+            provider_reference=str(provider_reference) if provider_reference else (
+                payment.order_reference if payment and status != "completed" else None
+            ),
+            verified_amount=Decimal(str(amount)) if amount is not None else (
+                Decimal(payment.amount) if payment and status != "completed" else None
+            ),
+            verified_currency=str(currency) if currency else None,
+            verification_implemented=True,
         )
 
     def parse_webhook(self, raw_body: bytes, content_type: str | None) -> dict:
@@ -149,19 +164,25 @@ class LigdicashProvider(PaymentProvider):
 
     def _build_create_payload(self, context: CheckoutContext) -> dict[str, Any]:
         items = []
-        for order_item in context.order.items.select_related("product").all():
+        for order_item in context.order.items.all():
             unit_price = self.format_amount(order_item.unit_price)
             line_total = unit_price * order_item.quantity
             items.append(
                 {
-                    "name": order_item.product.name,
-                    "description": order_item.product.name,
+                    "name": order_item.product_name,
+                    "description": order_item.variant_name or order_item.product_name,
                     "quantity": order_item.quantity,
                     "unit_price": unit_price,
                     "total_price": line_total,
                 }
             )
 
+        if context.order.shipping_amount:
+            shipping = self.format_amount(context.order.shipping_amount)
+            items.append({
+                "name": "Livraison", "description": context.order.delivery_method_label,
+                "quantity": 1, "unit_price": shipping, "total_price": shipping,
+            })
         return {
             "commande": {
                 "invoice": {
@@ -242,6 +263,10 @@ class LigdicashProvider(PaymentProvider):
             raise PaymentConfigurationError(
                 f"Configuration LigdiCash manquante: {', '.join(missing)}"
             )
+        if self.timeout <= 0:
+            raise PaymentConfigurationError("LIGDICASH_HTTP_TIMEOUT doit être positif.")
+        if not getattr(settings, "LIGDICASH_VERIFY_TLS", True):
+            raise PaymentConfigurationError("La vérification TLS LigdiCash est obligatoire.")
 
     def _headers(self) -> dict[str, str]:
         return {

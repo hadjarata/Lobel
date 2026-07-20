@@ -9,11 +9,15 @@ const VerifyEmail = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const uid = searchParams.get('uid');
-  const token = searchParams.get('token');
+  const [verificationCredentials] = useState(() => ({
+    uid: searchParams.get('uid'),
+    token: searchParams.get('token'),
+  }));
+  const { uid, token } = verificationCredentials;
 
   useEffect(() => {
     const runVerification = async () => {
+      window.history.replaceState(window.history.state, '', window.location.pathname);
       if (!uid || !token) {
         setError('Le lien de vérification est invalide ou incomplet.');
         return;
@@ -24,7 +28,7 @@ const VerifyEmail = () => {
         const data = await verifyEmail({ uid, token });
         setMessage(data.detail || 'Email vérifié avec succès. Vous pouvez vous connecter.');
       } catch (err) {
-        setError(err.response?.data?.detail || err.message || 'Impossible de vérifier votre adresse email.');
+        setError(err.message || 'Impossible de vérifier votre adresse email.');
       } finally {
         setLoading(false);
       }

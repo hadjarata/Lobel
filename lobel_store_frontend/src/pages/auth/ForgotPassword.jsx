@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { requestPasswordReset, validateEmailOnly } from '../../api/auth';
+import { requestPasswordResetEmail, validateEmailOnly } from '../../api/auth';
 import './Auth.css';
 
 const ForgotPassword = () => {
@@ -22,10 +22,10 @@ const ForgotPassword = () => {
 
     try {
       setLoading(true);
-      const data = await requestPasswordReset({ email });
+      const data = await requestPasswordResetEmail({ email });
       setMessage(data.detail || 'Si l’email existe, un lien de réinitialisation a été envoyé.');
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Impossible de demander la réinitialisation du mot de passe.');
+      setError(err.message || 'Impossible de demander la réinitialisation du mot de passe.');
     } finally {
       setLoading(false);
     }

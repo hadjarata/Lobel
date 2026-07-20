@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { pageVariants, springSnappy } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
 
@@ -6,7 +6,7 @@ const PageTransition = ({ children }) => {
   const transition = useMotionTransition(springSnappy);
 
   return (
-    <motion.div
+    <Motion.div
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -15,7 +15,7 @@ const PageTransition = ({ children }) => {
       style={{ width: '100%' }}
     >
       {children}
-    </motion.div>
+    </Motion.div>
   );
 };
 

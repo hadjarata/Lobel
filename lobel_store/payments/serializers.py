@@ -27,15 +27,24 @@ class PaymentReadSerializer(serializers.ModelSerializer):
         model = Payment
         fields = [
             'id',
+            'uuid',
             'order',
             'amount',
             'payment_method',
             'status',
             'provider',
-            'session_token',
             'order_reference',
+            'merchant_reference',
             'external_transaction_id',
             'currency',
+            'provider_status',
+            'initialized_at',
+            'redirected_at',
+            'confirmed_at',
+            'failed_at',
+            'cancelled_at',
+            'expired_at',
+            'last_checked_at',
             'processed_at',
             'date_paid',
         ]
@@ -44,3 +53,18 @@ class PaymentReadSerializer(serializers.ModelSerializer):
 
 # Backwards-compatible import used by existing views and tests.
 PaymentSerializer = PaymentReadSerializer
+
+
+class PaymentInitializeSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField(min_value=1)
+
+
+class PaymentSessionSerializer(serializers.Serializer):
+    payment_id = serializers.IntegerField()
+    order_id = serializers.IntegerField()
+    status = serializers.CharField()
+    provider = serializers.CharField()
+    checkout_url = serializers.URLField(required=False, allow_blank=True)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    currency = serializers.CharField()
+    replayed = serializers.BooleanField()

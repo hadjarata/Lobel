@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import {
   backdropVariants,
   panelVariants,
@@ -16,18 +16,39 @@ import {
   getOrderStatusLabel,
 } from '../../utils/profileUtils';
 import { getProductImageUrl } from '../../utils/mediaUtils';
+import { getOrderById } from '../../api/orders';
 
 const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId = null }) => {
   const [selectedOrderId, setSelectedOrderId] = useState(initialSelectedOrderId);
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState(null);
+  const [detailError, setDetailError] = useState('');
   const [isMobileSheet, setIsMobileSheet] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches,
   );
-  const selectedOrder = orders.find((order) => order.id === selectedOrderId);
+  const selectedOrder = selectedOrderDetail;
+
+  useEffect(() => {
+    if (!selectedOrderId) {
+      return undefined;
+    }
+    const controller = new AbortController();
+    getOrderById(selectedOrderId, { signal: controller.signal })
+      .then(setSelectedOrderDetail)
+      .catch((error) => {
+        if (error?.name !== 'CanceledError') setDetailError('Impossible de charger cette commande.');
+      });
+    return () => controller.abort();
+  }, [selectedOrderId]);
 
   useEffect(() => {
     if (initialSelectedOrderId) {
-      setSelectedOrderId(initialSelectedOrderId);
+      const timeoutId = window.setTimeout(
+        () => setSelectedOrderId(initialSelectedOrderId),
+        0,
+      );
+      return () => window.clearTimeout(timeoutId);
     }
+    return undefined;
   }, [initialSelectedOrderId]);
 
   useEffect(() => {
@@ -72,6 +93,8 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
 
   const closeOrderDetail = () => {
     setSelectedOrderId(null);
+    setSelectedOrderDetail(null);
+    setDetailError('');
   };
 
   const overlayTransition = useMotionTransition(springModal);
@@ -124,8 +147,8 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
         <div className={`profile-orders-layout${selectedOrder ? ' has-detail' : ''}`}>
           <ul className="profile-order-list">
             {orders.map((order) => {
-              const total = order.cart_total ?? 0;
-              const itemsCount = order.cart_items ?? order.items?.length ?? 0;
+              const total = order.cart_total;
+              const itemsCount = order.cart_items;
 
               return (
                 <li key={order.id}>
@@ -161,9 +184,9 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
           </ul>
 
           <AnimatePresence>
-            {selectedOrder && (
+            {(selectedOrder || detailError) && (
               <>
-                <motion.button
+                <Motion.button
                   type="button"
                   className="profile-order-detail-backdrop"
                   aria-label="Fermer le détail"
@@ -174,7 +197,7 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
                   exit={isMobileSheet ? 'exit' : undefined}
                   transition={isMobileSheet ? overlayTransition : undefined}
                 />
-                <motion.aside
+                <Motion.aside
                   className="profile-order-detail"
                   role="dialog"
                   aria-modal="true"
@@ -192,10 +215,10 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
                   >
                     ← Retour
                   </button>
-                  <h3>Commande #{selectedOrder.id}</h3>
+                  <h3>{selectedOrder ? `Commande #${selectedOrder.id}` : 'Détail indisponible'}</h3>
                 </div>
 
-                <dl className="profile-detail-rows">
+                {detailError ? <p className="profile-error">{detailError}</p> : <><dl className="profile-detail-rows">
                   <div>
                     <dt>Date</dt>
                     <dd>{formatDateTime(selectedOrder.date_ordered)}</dd>
@@ -219,8 +242,7 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
                 <ul className="profile-order-items">
                   {(selectedOrder.items || []).map((item) => {
                     const imageUrl = getProductImageUrl(item.product);
-                    const lineTotal =
-                      Number(item.product?.price || 0) * Number(item.quantity || 0);
+                    const lineTotal = item.line_total;
 
                     return (
                       <li key={item.id} className="profile-order-item">
@@ -232,19 +254,19 @@ const ProfileOrdersPanel = ({ orders, loading, onRefresh, initialSelectedOrderId
                           )}
                         </div>
                         <div className="profile-order-item-info">
-                          <p>{item.product?.name || 'Produit'}</p>
+                          <p>{item.product_name || 'Produit indisponible'}</p>
                           <span>
-                            {item.quantity} × {formatPrice(item.product?.price)} FCFA
+                            {item.quantity} × {formatPrice(item.unit_price)} {item.currency}
                           </span>
                         </div>
                         <strong className="profile-order-item-price">
-                          {formatPrice(lineTotal)} FCFA
+                          {formatPrice(lineTotal)} {item.currency}
                         </strong>
                       </li>
                     );
                   })}
-                </ul>
-                </motion.aside>
+                </ul></>}
+                </Motion.aside>
               </>
             )}
           </AnimatePresence>

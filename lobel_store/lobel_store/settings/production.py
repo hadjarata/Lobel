@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from corsheaders.defaults import default_headers, default_methods
 from django.core.exceptions import ImproperlyConfigured
 
@@ -84,11 +86,25 @@ if PAYMENT_PROVIDER != "ligdicash":
 LIGDICASH_API_KEY = env_required("LIGDICASH_API_KEY")
 LIGDICASH_API_TOKEN = env_required("LIGDICASH_API_TOKEN")
 LIGDICASH_BASE_URL = env_https_url("LIGDICASH_BASE_URL")
+if urlparse(LIGDICASH_BASE_URL).hostname != "app.ligdicash.com":
+    raise ImproperlyConfigured(
+        "LIGDICASH_BASE_URL must target app.ligdicash.com in production."
+    )
 LIGDICASH_STORE_NAME = env_required("LIGDICASH_STORE_NAME")
 LIGDICASH_STORE_URL = env_https_url("LIGDICASH_STORE_URL")
 LIGDICASH_RETURN_URL = env_https_url("LIGDICASH_RETURN_URL")
 LIGDICASH_CANCEL_URL = env_https_url("LIGDICASH_CANCEL_URL")
 LIGDICASH_CALLBACK_URL = env_https_url("LIGDICASH_CALLBACK_URL")
+LIGDICASH_ENVIRONMENT = env_required("LIGDICASH_ENVIRONMENT").lower()
+if LIGDICASH_ENVIRONMENT != "production":
+    raise ImproperlyConfigured("Production requires LIGDICASH_ENVIRONMENT=production.")
+LIGDICASH_HTTP_TIMEOUT = env_int("LIGDICASH_HTTP_TIMEOUT", minimum=1)
+LIGDICASH_VERIFY_TLS = env_bool("LIGDICASH_VERIFY_TLS")
+if not LIGDICASH_VERIFY_TLS:
+    raise ImproperlyConfigured("LigdiCash TLS verification cannot be disabled.")
+LIGDICASH_ALLOWED_CHECKOUT_HOSTS = env_list_required("LIGDICASH_ALLOWED_CHECKOUT_HOSTS")
+if "app.ligdicash.com" not in LIGDICASH_ALLOWED_CHECKOUT_HOSTS:
+    raise ImproperlyConfigured("The official LigdiCash checkout host must be allowed.")
 
 MEDIA_STORAGE_BACKEND = env_required("MEDIA_STORAGE_BACKEND").lower()
 MEDIA_LOCAL_STORAGE_IS_PERSISTENT = env_bool("MEDIA_LOCAL_STORAGE_IS_PERSISTENT")

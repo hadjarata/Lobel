@@ -46,3 +46,33 @@ class ProductFilterTests(TestCase):
             {"available": "maybe"}, {"category": "bad"}, {"color": "bad"},
         ):
             self.assertEqual(self.client.get("/api/products/products/", params).status_code, 400)
+
+    def test_filter_options_are_complete_and_not_paginated(self):
+        response = self.client.get("/api/products/products/filter-options/")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(
+            [item["name"] for item in response.data["categories"]],
+            ["Autre", "Filtres"],
+        )
+        self.assertEqual(response.data["collections"], [
+            {"id": self.collection.pk, "name": "Promo", "slug": "promo"}
+        ])
+        self.assertEqual(response.data["colors"], [
+            {"id": self.color.pk, "name": "Rouge", "hex_code": None}
+        ])
+        self.assertEqual(response.data["sizes"], [{"id": self.size.pk, "name": "M"}])
+        self.assertEqual(response.data["price"], {"min": "10.00", "max": "30.00"})
+
+    def test_filter_options_exclude_inactive_and_out_of_stock_facets(self):
+        inactive_color = Color.objects.create(name="Invisible")
+        inactive_size = Size.objects.create(name="XL")
+        ProductVariant.objects.create(
+            product=self.unavailable,
+            color=inactive_color,
+            size=inactive_size,
+            stock=0,
+        )
+        response = self.client.get("/api/products/products/filter-options/")
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Invisible", [item["name"] for item in response.data["colors"]])
+        self.assertNotIn("XL", [item["name"] for item in response.data["sizes"]])

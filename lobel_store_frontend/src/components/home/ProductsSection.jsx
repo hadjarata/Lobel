@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../product/ProductCard';
 import { getBestSellers } from '../../api/products';
+import { logger } from '../../utils/logger';
 import './ProductsSection.css';
 
 const ProductsSection = () => {
@@ -15,7 +16,7 @@ const ProductsSection = () => {
         setLoading(true);
         setError(null);
         const data = await getBestSellers(); // Utiliser l'endpoint bestsellers sans limite
-        let products = data.results || data;
+        let products = data.results;
         
         // Limiter à 3 produits maximum
         if (products.length > 3) {
@@ -25,7 +26,7 @@ const ProductsSection = () => {
         setProducts(products);
       } catch (err) {
         setError('Impossible de charger les best sellers');
-        console.error('Error fetching best sellers:', err);
+        logger.error('Error fetching best sellers:', err);
       } finally {
         setLoading(false);
       }
@@ -71,6 +72,7 @@ const ProductsSection = () => {
                 name={product.name}
                 price={product.price}
                 image={product.image}
+                variants={product.variants}
                 video={product.video}
                 badge={product.badge}
                 salesCount={product.sales_count}

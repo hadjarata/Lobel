@@ -1,0 +1,23 @@
+.orders-page { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem 4rem; }
+.orders-toolbar, .orders-actions, .orders-pagination { display: flex; gap: .75rem; flex-wrap: wrap; align-items: center; }
+.orders-list { list-style: none; padding: 0; display: grid; gap: 1rem; }
+.orders-card, .order-detail-card { border: 1px solid #ddd; border-radius: 12px; padding: 1rem; background: #fff; }
+.orders-card-head { display: flex; justify-content: space-between; gap: 1rem; }
+.order-status[data-tone="success"] { color: #146c43; }
+.order-status[data-tone="danger"] { color: #b42318; }
+.order-status[data-tone="warning"] { color: #8a4b08; }
+.order-timeline { border-left: 2px solid #ddd; margin-left: .5rem; padding-left: 1.25rem; }
+.order-timeline li { margin-bottom: 1rem; }
+.order-items { width: 100%; border-collapse: collapse; }
+.order-items th, .order-items td { text-align: left; border-bottom: 1px solid #eee; padding: .65rem; }
+.order-totals { margin-left: auto; max-width: 360px; }
+.order-totals div { display: flex; justify-content: space-between; gap: 2rem; }
+.order-dialog { max-width: 430px; width: calc(100% - 2rem); }
+@media (max-width: 600px) {
+  .orders-page { padding-inline: .75rem; }
+  .orders-card-head { display: block; }
+  .order-items thead { position: absolute; clip: rect(0 0 0 0); }
+  .order-items tr { display: grid; padding: .75rem 0; }
+  .order-items td { border: 0; padding: .2rem 0; }
+  .orders-actions > * { min-height: 44px; flex: 1 1 100%; }
+}

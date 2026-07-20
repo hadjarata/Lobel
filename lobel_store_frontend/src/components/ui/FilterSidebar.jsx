@@ -1,344 +1,142 @@
-import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import {
-  backdropVariants,
-  slideFromLeftVariants,
-  springModal,
-  springSheet,
-} from '../../utils/motion';
+import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
+import { backdropVariants, slideFromLeftVariants, springModal, springSheet } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
 import './FilterSidebar.css';
 
-const FilterSidebar = ({ 
-  filters = {}, 
-  onFilterChange = () => {},
+const Section = ({ name, title, expanded, toggle, children }) => (
+  <div className="filter-section">
+    <button
+      type="button"
+      className="filter-section-header"
+      aria-expanded={expanded}
+      aria-controls={`filter-${name}`}
+      onClick={() => toggle(name)}
+    >
+      <span className="filter-section-title">{title}</span>
+      <span aria-hidden="true" className={`chevron ${expanded ? 'open' : ''}`}>⌄</span>
+    </button>
+    {expanded && <div id={`filter-${name}`} className="filter-section-content">{children}</div>}
+  </div>
+);
+
+const FilterSidebar = ({
+  id,
+  query,
+  options,
+  onChange,
+  onClear,
   isMobile = false,
   isOpen = false,
   onClose = () => {},
-  collections = [],
-  categories = [],
-  colors = [],
-  sizes = []
 }) => {
-  const [expandedSections, setExpandedSections] = useState({
-    collection: true,
-    category: true,
-    price: true,
-    size: true,
-    color: true,
-    new: true
+  const [expanded, setExpanded] = useState({
+    collection: true, category: true, price: true, size: true, color: true, availability: true,
   });
-
-  const priceRanges = [
-    { label: 'Moins de 10 000 FCFA', min: 0, max: 10000 },
-    { label: '10 000 - 20 000 FCFA', min: 10000, max: 20000 },
-    { label: '20 000 - 30 000 FCFA', min: 20000, max: 30000 },
-    { label: 'Plus de 30 000 FCFA', min: 30000, max: Infinity }
-  ];
-
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  const handleCollectionChange = (collectionSlug) => {
-    onFilterChange('collection', collectionSlug);
-  };
-
-  const handleCategoryChange = (categoryId) => {
-    onFilterChange('category', categoryId);
-  };
-
-  const handleSizeChange = (size) => {
-    onFilterChange('size', size);
-  };
-
-  const handleColorChange = (color) => {
-    onFilterChange('color', color);
-  };
-
-  const handleNewChange = () => {
-    onFilterChange('isNew', true);
-  };
-
-  const handlePriceChange = (range) => {
-    onFilterChange('price', range);
-  };
-
-  const clearFilters = () => {
-    onFilterChange('clear', {});
-  };
-
   const overlayTransition = useMotionTransition(springModal);
   const panelTransition = useMotionTransition(springSheet);
+  const toggle = (name) => setExpanded((current) => ({ ...current, [name]: !current[name] }));
 
-  const sidebarContent = (
+  useEffect(() => {
+    if (!isMobile || !isOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isMobile, isOpen, onClose]);
+
+  const content = (
     <>
-        <div className="filter-header">
-          <h3 className="filter-title">Filtres</h3>
-          <div className="filter-actions">
-            <button className="clear-filters-btn" onClick={clearFilters}>
-              Tout effacer
-            </button>
-            {isMobile && (
-              <button className="close-filters-btn" onClick={onClose}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            )}
-          </div>
+      <div className="filter-header">
+        <h3 className="filter-title">Filtres</h3>
+        <div className="filter-actions">
+          <button type="button" className="clear-filters-btn" onClick={onClear}>Tout effacer</button>
+          {isMobile && (
+            <button type="button" className="close-filters-btn" aria-label="Fermer les filtres" onClick={onClose}>×</button>
+          )}
         </div>
-
-        <div className="filter-content">
-          {/* Catégories */}
-          <div className="filter-section">
-            <div 
-              className="filter-section-header"
-              onClick={() => toggleSection('collection')}
-            >
-              <h4 className="filter-section-title">Collections</h4>
-              <svg 
-                className={`chevron ${expandedSections.collection ? 'open' : ''}`}
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </div>
-            {expandedSections.collection && (
-              <div className="filter-section-content">
-                {collections.map((collection) => (
-                  <label key={collection.slug} className="filter-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.collection === collection.slug}
-                      onChange={() => handleCollectionChange(collection.slug)}
-                    />
-                    <span className="filter-label">{collection.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+      </div>
+      <div className="filter-content">
+        <Section name="collection" title="Collections" expanded={expanded.collection} toggle={toggle}>
+          {options.collections.map((item) => (
+            <label key={item.slug} className="filter-item">
+              <input type="radio" name="collection" checked={query.collection === item.slug}
+                onChange={() => onChange('collection', query.collection === item.slug ? null : item.slug)} />
+              <span className="filter-label">{item.name}</span>
+            </label>
+          ))}
+        </Section>
+        <Section name="category" title="Catégories" expanded={expanded.category} toggle={toggle}>
+          {options.categories.map((item) => (
+            <label key={item.id} className="filter-item">
+              <input type="radio" name="category" checked={query.category === item.id}
+                onChange={() => onChange('category', query.category === item.id ? null : item.id)} />
+              <span className="filter-label">{item.name}</span>
+            </label>
+          ))}
+        </Section>
+        <Section name="price" title="Prix" expanded={expanded.price} toggle={toggle}>
+          <div className="price-fields">
+            <label>Minimum
+              <input type="number" min="0" inputMode="decimal" value={query.minPrice ?? ''}
+                placeholder={options.price.min ?? '0'}
+                onChange={(event) => onChange('minPrice', event.target.value || null)} />
+            </label>
+            <label>Maximum
+              <input type="number" min="0" inputMode="decimal" value={query.maxPrice ?? ''}
+                placeholder={options.price.max ?? ''}
+                onChange={(event) => onChange('maxPrice', event.target.value || null)} />
+            </label>
           </div>
-
-          {/* Catégories */}
-          <div className="filter-section">
-            <div 
-              className="filter-section-header"
-              onClick={() => toggleSection('category')}
-            >
-              <h4 className="filter-section-title">Catégories</h4>
-              <svg 
-                className={`chevron ${expandedSections.category ? 'open' : ''}`}
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </div>
-            {expandedSections.category && (
-              <div className="filter-section-content">
-                {categories.map((category) => (
-                  <label key={category.id} className="filter-item">
-                    <input
-                      type="checkbox"
-                      checked={filters.category === category.id}
-                      onChange={() => handleCategoryChange(category.id)}
-                    />
-                    <span className="filter-label">{category.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
+        </Section>
+        <Section name="size" title="Tailles" expanded={expanded.size} toggle={toggle}>
+          <div className="size-grid">
+            {options.sizes.map((item) => (
+              <label key={item.id} className="size-item">
+                <input type="radio" name="size" checked={query.size === item.id}
+                  onChange={() => onChange('size', query.size === item.id ? null : item.id)} />
+                <span className="size-label">{item.name}</span>
+              </label>
+            ))}
           </div>
-
-          {/* Prix */}
-          <div className="filter-section">
-            <div 
-              className="filter-section-header"
-              onClick={() => toggleSection('price')}
-            >
-              <h4 className="filter-section-title">Prix</h4>
-              <svg 
-                className={`chevron ${expandedSections.price ? 'open' : ''}`}
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </div>
-            {expandedSections.price && (
-              <div className="filter-section-content">
-                {priceRanges.map((range, index) => (
-                  <label key={index} className="filter-item">
-                    <input
-                      type="radio"
-                      name="price"
-                      checked={filters.price?.label === range.label}
-                      onChange={() => handlePriceChange(range)}
-                    />
-                    <span className="filter-label">{range.label}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Tailles */}
-          <div className="filter-section">
-            <div 
-              className="filter-section-header"
-              onClick={() => toggleSection('size')}
-            >
-              <h4 className="filter-section-title">Tailles</h4>
-              <svg 
-                className={`chevron ${expandedSections.size ? 'open' : ''}`}
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </div>
-            {expandedSections.size && (
-              <div className="filter-section-content">
-                <div className="size-grid">
-                  {sizes.map((size) => (
-                    <label key={size} className="size-item">
-                      <input
-                        type="checkbox"
-                        checked={filters.size?.includes(size)}
-                        onChange={() => handleSizeChange(size)}
-                      />
-                      <span className="size-label">{size}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Couleurs */}
-          <div className="filter-section">
-            <div 
-              className="filter-section-header"
-              onClick={() => toggleSection('color')}
-            >
-              <h4 className="filter-section-title">Couleurs</h4>
-              <svg 
-                className={`chevron ${expandedSections.color ? 'open' : ''}`}
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </div>
-            {expandedSections.color && (
-              <div className="filter-section-content">
-                <div className="color-grid">
-                  {colors.map((color) => (
-                    <label key={color} className="color-item">
-                      <input
-                        type="checkbox"
-                        checked={filters.color?.includes(color)}
-                        onChange={() => handleColorChange(color)}
-                      />
-                      <span className="color-label">{color}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Nouveautés */}
-          <div className="filter-section">
-            <div 
-              className="filter-section-header"
-              onClick={() => toggleSection('new')}
-            >
-              <h4 className="filter-section-title">Nouveautés</h4>
-              <svg 
-                className={`chevron ${expandedSections.new ? 'open' : ''}`}
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2"
-              >
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </div>
-            {expandedSections.new && (
-              <div className="filter-section-content">
-                <label className="filter-item">
-                  <input
-                    type="checkbox"
-                    checked={filters.isNew || false}
-                    onChange={handleNewChange}
-                  />
-                  <span className="filter-label">Derniers 30 jours</span>
-                </label>
-              </div>
-            )}
-          </div>
-        </div>
-      </>
+        </Section>
+        <Section name="color" title="Couleurs" expanded={expanded.color} toggle={toggle}>
+          {options.colors.map((item) => (
+            <label key={item.id} className="filter-item">
+              <input type="radio" name="color" checked={query.color === item.id}
+                onChange={() => onChange('color', query.color === item.id ? null : item.id)} />
+              <span className="filter-label">
+                {item.hex_code && <span className="color-swatch" style={{ backgroundColor: item.hex_code }} aria-hidden="true" />}
+                {item.name}
+              </span>
+            </label>
+          ))}
+        </Section>
+        <Section name="availability" title="Disponibilité" expanded={expanded.availability} toggle={toggle}>
+          <label className="filter-item">
+            <input type="checkbox" checked={query.available === true}
+              onChange={() => onChange('available', query.available === true ? null : true)} />
+            <span className="filter-label">En stock uniquement</span>
+          </label>
+        </Section>
+      </div>
+    </>
   );
 
-  if (!isMobile) {
-    return <div className="filter-sidebar desktop">{sidebarContent}</div>;
-  }
-
+  if (!isMobile) return <div id={id} className="filter-sidebar desktop">{content}</div>;
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.button
-            type="button"
-            className="filter-overlay"
-            aria-label="Fermer les filtres"
-            onClick={onClose}
-            variants={backdropVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={overlayTransition}
-          />
-          <motion.div
-            className="filter-sidebar mobile open"
-            variants={slideFromLeftVariants}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            transition={panelTransition}
-          >
-            {sidebarContent}
-          </motion.div>
+          <Motion.button type="button" className="filter-overlay" aria-label="Fermer les filtres"
+            onClick={onClose} variants={backdropVariants} initial="initial" animate="animate" exit="exit"
+            transition={overlayTransition} />
+          <Motion.div id={id} role="dialog" aria-modal="true" aria-label="Filtres du catalogue"
+            className="filter-sidebar mobile open" variants={slideFromLeftVariants}
+            initial="initial" animate="animate" exit="exit" transition={panelTransition}>
+            {content}
+          </Motion.div>
         </>
       )}
     </AnimatePresence>

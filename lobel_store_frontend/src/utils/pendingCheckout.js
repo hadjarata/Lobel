@@ -1,10 +1,9 @@
 const STORAGE_KEY = 'pendingCheckout';
 
-export const savePendingCheckout = ({ paymentId, orderId, sessionToken = null }) => {
+export const savePendingCheckout = ({ paymentId, orderId }) => {
   const payload = {
     paymentId,
     orderId: orderId ?? null,
-    sessionToken,
     createdAt: new Date().toISOString(),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));

@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom"
 import App from "./App"
 import AppErrorBoundary from "./components/errors/AppErrorBoundary"
 import { AuthProvider } from "./context/AuthContext"
+import { CartProvider } from "./cart/CartContext"
 import "./styles/global.css"
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -12,7 +13,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <AppErrorBoundary>
         <AuthProvider>
-          <App />
+          <CartProvider>
+            <App />
+          </CartProvider>
         </AuthProvider>
       </AppErrorBoundary>
     </BrowserRouter>

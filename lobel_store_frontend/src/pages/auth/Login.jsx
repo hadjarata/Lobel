@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authState';
 import { validateLogin } from '../../api/auth';
 import { parseApiError } from '../../utils/apiErrors';
 import logo from '../../logo/LOBEL PROFIL 4.jpg.jpeg';
@@ -9,19 +9,13 @@ import './Auth.css';
 const Login = () => {
   const location = useLocation();
   const { login, loading } = useAuth();
-  const [infoMessage, setInfoMessage] = useState('');
+  const infoMessage = location.state?.message || '';
   const [loginData, setLoginData] = useState({
     email: '',
     password: '',
   });
   const [loginErrors, setLoginErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
-
-  useEffect(() => {
-    if (location.state?.message) {
-      setInfoMessage(location.state.message);
-    }
-  }, [location.state]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,6 +45,7 @@ const Login = () => {
 
     try {
       await login(loginData);
+      setLoginData((previous) => ({ ...previous, password: '' }));
     } catch (error) {
       const parsed = parseApiError(error, 'Email ou mot de passe incorrect');
       setSubmitError(error.message || parsed.message);

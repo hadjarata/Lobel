@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { panelVariants, springSnappy } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
 import { fetchCart } from '../../api/cart';
@@ -16,7 +16,7 @@ import ProfileOrdersPanel from '../../components/profile/ProfileOrdersPanel';
 import ProfilePaymentsPanel from '../../components/profile/ProfilePaymentsPanel';
 import ProfileCartPanel from '../../components/profile/ProfileCartPanel';
 import ProfileSettingsPanel from '../../components/profile/ProfileSettingsPanel';
-import { normalizeApiList } from '../../utils/collectionUtils';
+import { logger } from '../../utils/logger';
 import './Profile.css';
 
 const Profile = () => {
@@ -49,7 +49,7 @@ const Profile = () => {
       setCustomer(profileData);
       return profileData;
     } catch (err) {
-      console.error('Error loading profile:', err);
+      logger.error('Error loading profile:', err);
       setError('Impossible de charger votre profil.');
       return null;
     }
@@ -60,12 +60,12 @@ const Profile = () => {
     try {
       const data = await getOrders();
       setOrders(
-        normalizeApiList(data).filter(
+        data.results.filter(
           (order) => !(order.complete === false && order.status === 'pending'),
         ),
       );
     } catch (err) {
-      console.error('Error loading orders:', err);
+      logger.error('Error loading orders:', err);
       setOrders([]);
     } finally {
       setOrdersLoading(false);
@@ -76,9 +76,9 @@ const Profile = () => {
     setPaymentsLoading(true);
     try {
       const data = await getPayments();
-      setPayments(normalizeApiList(data));
+      setPayments(data.results);
     } catch (err) {
-      console.error('Error loading payments:', err);
+      logger.error('Error loading payments:', err);
       setPayments([]);
     } finally {
       setPaymentsLoading(false);
@@ -91,7 +91,7 @@ const Profile = () => {
       const cartData = await fetchCart({ notify: false });
       setCart(cartData);
     } catch (err) {
-      console.error('Error loading cart:', err);
+      logger.error('Error loading cart:', err);
       setCart(null);
     } finally {
       setCartLoading(false);
@@ -218,7 +218,7 @@ const Profile = () => {
       <div className="profile-dashboard">
         <ProfileSidebar activeTab={activeTab} onTabChange={setActiveTab} stats={stats} />
         <AnimatePresence mode="wait">
-          <motion.div
+          <Motion.div
             key={activeTab}
             className="profile-main"
             variants={panelVariants}
@@ -228,7 +228,7 @@ const Profile = () => {
             transition={panelTransition}
           >
             {renderPanel()}
-          </motion.div>
+          </Motion.div>
         </AnimatePresence>
       </div>
     </div>

@@ -17,7 +17,7 @@ export const getProductImageUrl = (product) => {
       mediaFiles.find((media) => media.media_type === 'image') || mediaFiles[0];
 
     if (firstImage) {
-      return normalizeMediaUrl(firstImage.file_url || firstImage.file);
+      return normalizeMediaUrl(firstImage.url || firstImage.file_url || firstImage.file);
     }
   }
 

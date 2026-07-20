@@ -5,6 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from orders.models import Order
+from orders.services.lifecycle_service import OrderLifecycleService
 from orders.services.order_service import OrderFulfillmentError, OrderService
 from payments.models import Payment
 
@@ -48,7 +49,49 @@ class PaymentService:
             order.id,
         )
 
-        self.order_service.fulfill_order(order, payment)
+        if order.status in {Order.STATUS_CANCELLED, Order.STATUS_EXPIRED}:
+            OrderLifecycleService().transition_order(
+                order=order,
+                target_status=Order.STATUS_REFUND_REQUIRED,
+                actor=None,
+                reason_code="late_payment_confirmed",
+                source="payment_reconciliation",
+                payment=payment,
+                metadata={"payment_id": payment.id},
+            )
+            payment.processed_at = timezone.now()
+            payment.failure_code = "late_payment_refund_required"
+            payment.save(update_fields=["processed_at", "failure_code"])
+            logger.error(
+                "late_payment_requires_reconciliation payment_id=%s order_id=%s",
+                payment.id, order.id,
+            )
+            return
+
+        try:
+            self.order_service.fulfill_order(order, payment)
+        except OrderFulfillmentError:
+            order.refresh_from_db()
+            if order.status not in {Order.STATUS_CANCELLED, Order.STATUS_EXPIRED}:
+                raise
+            OrderLifecycleService().transition_order(
+                order=order,
+                target_status=Order.STATUS_REFUND_REQUIRED,
+                actor=None,
+                reason_code="late_payment_confirmed",
+                source="payment_reconciliation",
+                payment=payment,
+                metadata={"payment_id": payment.id},
+            )
+            payment.processed_at = timezone.now()
+            payment.failure_code = "late_payment_refund_required"
+            payment.save(update_fields=["processed_at", "failure_code"])
+            logger.error(
+                "late_payment_race_requires_reconciliation "
+                "payment_id=%s order_id=%s",
+                payment.id, order.id,
+            )
+            return
 
         payment.processed_at = timezone.now()
         payment.save(update_fields=["processed_at"])
@@ -60,6 +103,10 @@ class PaymentService:
         )
 
     def _resolve_order(self, payment: Payment) -> Order:
+        if payment.merchant_reference:
+            if payment.order_reference != payment.merchant_reference:
+                raise PaymentProcessingError("Payment merchant reference mismatch.")
+            return payment.order
         if payment.order_reference:
             expected_order_id = OrderService.parse_order_id_from_reference(
                 payment.order_reference

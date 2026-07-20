@@ -1,88 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { 
-  Home, 
-  ShoppingBag, 
-  User, 
-  ShoppingCart, 
-  LogOut 
-} from 'lucide-react';
+import { Home, LogOut, ShoppingBag, ShoppingCart, User } from 'lucide-react';
+import { useCart } from '../../cart/cartState';
+import { useAuth } from '../../context/authState';
 import NavItem from './NavItem';
-import { buildGuestCartPayload } from '../../utils/guestCart';
 import './Navbar.css';
 
 const Navbar = () => {
   const { isAuthenticated, logout } = useAuth();
-  const [cartCount, setCartCount] = useState(0);
-
-  useEffect(() => {
-    const savedCount = localStorage.getItem('cartCount');
-    if (savedCount) {
-      setCartCount(parseInt(savedCount, 10));
-    } else if (!localStorage.getItem('access')) {
-      const guestCount = buildGuestCartPayload().cart_items;
-      setCartCount(guestCount);
-      localStorage.setItem('cartCount', String(guestCount));
-    }
-
-    // Écouter les mises à jour du panier
-    const handleCartUpdate = () => {
-      const currentCount = localStorage.getItem('cartCount');
-      setCartCount(currentCount ? parseInt(currentCount) : 0);
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    window.addEventListener('storage', handleCartUpdate);
-
-    return () => {
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-      window.removeEventListener('storage', handleCartUpdate);
-    };
-  }, []);
-
+  const { itemCount } = useCart();
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        {/* Logo */}
         <div className="navbar-logo">
-          <Link to="/" className="logo-link">
-            <img src="/logo.jpg" alt="Lobel Store" className="logo-image" />
-          </Link>
+          <Link to="/" className="logo-link"><img src="/logo.jpg" alt="Lobel Store" className="logo-image" /></Link>
         </div>
-
-        {/* Navigation principale - une seule barre */}
         <div className="navbar-nav">
-          {/* Navigation de base (toujours visible) */}
           <NavItem to="/" icon={Home}>Accueil</NavItem>
           <NavItem to="/shop" icon={ShoppingBag}>Boutique</NavItem>
-          <NavItem to="/cart" icon={ShoppingCart} badge={cartCount > 0 ? cartCount : null}>
-            Panier
-          </NavItem>
-
-          {isAuthenticated ? (
-            <NavItem to="/profile" icon={User}>Profil</NavItem>
-          ) : null}
+          <NavItem to="/cart" icon={ShoppingCart} badge={itemCount > 0 ? itemCount : null}>Panier</NavItem>
+          {isAuthenticated && <NavItem to="/profile" icon={User}>Profil</NavItem>}
         </div>
-
-        {/* Boutons à droite */}
         <div className="navbar-right">
           {isAuthenticated ? (
             <div className="navbar-logout">
-              <NavItem 
-                icon={LogOut} 
-                onClick={logout}
-                isButton={true}
-                className="logout-item"
-              >
-                Déconnexion
-              </NavItem>
+              <NavItem icon={LogOut} onClick={logout} isButton className="logout-item">Déconnexion</NavItem>
             </div>
           ) : (
             <div className="navbar-login">
-              <NavItem to="/login" icon={User} className="login-item">
-                Connexion
-              </NavItem>
+              <NavItem to="/login" icon={User} className="login-item">Connexion</NavItem>
             </div>
           )}
         </div>

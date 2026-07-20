@@ -16,6 +16,8 @@ import Register from './pages/auth/Register';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import VerifyEmail from './pages/auth/VerifyEmail';
+import OrdersList from './pages/Orders/OrdersList';
+import OrderDetail from './pages/Orders/OrderDetail';
 
 function AppRoutes() {
   const location = useLocation();
@@ -42,6 +44,9 @@ function AppRoutes() {
             </PageTransition>
           )}
         />
+        <Route path="/account/orders" element={<PageTransition><PrivateRoute><OrdersList /></PrivateRoute></PageTransition>} />
+        <Route path="/account/orders/:id" element={<PageTransition><PrivateRoute><OrderDetail /></PrivateRoute></PageTransition>} />
+        <Route path="/order-confirmation/:id" element={<PageTransition><PrivateRoute><OrderDetail confirmation /></PrivateRoute></PageTransition>} />
         <Route path="/cart" element={<PageTransition><Cart /></PageTransition>} />
         <Route
           path="/checkout"
@@ -60,6 +65,14 @@ function AppRoutes() {
               <PrivateRoute>
                 <CheckoutSuccess />
               </PrivateRoute>
+            </PageTransition>
+          )}
+        />
+        <Route
+          path="/checkout/payment/return"
+          element={(
+            <PageTransition>
+              <PrivateRoute><CheckoutSuccess /></PrivateRoute>
             </PageTransition>
           )}
         />

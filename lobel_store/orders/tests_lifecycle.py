@@ -111,28 +111,19 @@ class OrderLifecycleTests(LifecycleFixtureMixin, TestCase):
         self.assertEqual(history.reason_code, "customer_request")
         self.assertEqual(history.actor, self.owner)
 
-    def test_staff_cancel_after_payment_releases_exact_stock_once(self):
+    def test_staff_cannot_cancel_paid_order_without_refund(self):
         self.paid()
         self.variant.refresh_from_db()
         self.assertEqual(self.variant.stock, 8)
-        order, changed = self.service.transition_order(
-            order=self.order, target_status=Order.STATUS_CANCELLED,
-            actor=self.staff, reason_code="operational_issue",
-        )
-        first_released_at = order.stock_released_at
-        _, changed_again = self.service.transition_order(
-            order=order, target_status=Order.STATUS_CANCELLED,
-            actor=self.staff, reason_code="operational_issue",
-        )
+        with self.assertRaises(OrderTransitionError):
+            self.service.transition_order(
+                order=self.order, target_status=Order.STATUS_CANCELLED,
+                actor=self.staff, reason_code="operational_issue",
+            )
         self.variant.refresh_from_db()
-        order.refresh_from_db()
-        self.assertTrue(changed)
-        self.assertFalse(changed_again)
-        self.assertEqual(self.variant.stock, 10)
-        self.assertEqual(order.stock_released_at, first_released_at)
-        self.assertEqual(
-            order.status_history.filter(to_status=Order.STATUS_CANCELLED).count(), 1
-        )
+        self.order.refresh_from_db()
+        self.assertEqual(self.variant.stock, 8)
+        self.assertEqual(self.order.status, Order.STATUS_PAID)
 
     def test_refund_is_prepared_without_fake_provider_confirmation(self):
         self.paid()
