@@ -267,6 +267,59 @@ class OrderNotificationReceipt(models.Model):
         )
 
 
+class OrderReceiptQuerySet(models.QuerySet):
+    def update(self, **kwargs):
+        attribution = set(kwargs) == {"receipt_number"}
+        if not attribution or self.exclude(receipt_number__startswith="P-").exists():
+            raise CommercialDataDeletionError(
+                "Un justificatif de commande est immuable."
+            )
+        return super().update(**kwargs)
+
+    def delete(self):
+        raise CommercialDataDeletionError(
+            "Un justificatif de commande ne peut pas être supprimé."
+        )
+
+
+class OrderReceipt(models.Model):
+    objects = OrderReceiptQuerySet.as_manager()
+    DOCUMENT_TYPE = "order_receipt"
+
+    order = models.OneToOneField(
+        Order, on_delete=models.PROTECT, related_name="receipt"
+    )
+    receipt_number = models.CharField(max_length=32, unique=True)
+    issued_at = models.DateTimeField()
+    document_type = models.CharField(
+        max_length=32, default=DOCUMENT_TYPE, editable=False
+    )
+    snapshot = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            previous = type(self).objects.get(pk=self.pk)
+            immutable = (
+                "order_id", "receipt_number", "issued_at",
+                "document_type", "snapshot",
+            )
+            if any(getattr(self, field) != getattr(previous, field) for field in immutable):
+                raise CommercialDataDeletionError(
+                    "Un justificatif de commande est immuable."
+                )
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise CommercialDataDeletionError(
+            "Un justificatif de commande ne peut pas être supprimé."
+        )
+
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True)

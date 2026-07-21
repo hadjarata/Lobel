@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { ChevronDown, ShoppingBag } from 'lucide-react';
 import ProductCard from '../product/ProductCard';
+import { Button, Card, Section } from '../ui';
 import { getNewProducts } from '../../api/products';
 import { logger } from '../../utils/logger';
+import HomeReveal, { HomeRevealItem } from './HomeReveal';
 import './NewProductsSection.css';
 
 const getColumnCount = (width) => {
@@ -46,74 +49,70 @@ const NewProductsSection = () => {
   const showToggle = products.length > columns;
 
   return (
-    <section className="new-products-section">
-      <div className="container">
-        <div className="section-header">
-          <h2 className="section-title">Nouveautés</h2>
-          <p className="section-subtitle">
-            Les dernières pièces de notre sélection, pensées pour vous
-          </p>
-        </div>
-
+    <Section
+      className="new-products-section"
+      id="new-products"
+      title="Nouveautés"
+      subtitle="Les dernières pièces de notre sélection, pensées pour vous"
+    >
         {loading ? (
-          <div className="new-products-loading">
-            <div className="loading-spinner"></div>
+          <div className="home-state new-products-loading" role="status">
+            <span className="home-spinner" aria-hidden="true" />
             <p>Chargement des nouveautés...</p>
           </div>
         ) : error ? (
-          <div className="new-products-error">
+          <Card className="home-state new-products-error">
             <p>{error}</p>
-            <button className="retry-btn" onClick={() => window.location.reload()}>
+            <Button onClick={() => window.location.reload()}>
               Réessayer
-            </button>
-          </div>
+            </Button>
+          </Card>
         ) : products.length === 0 ? (
-          <div className="new-products-empty">
+          <Card className="home-state new-products-empty">
             <div className="empty-content">
-              <div className="empty-icon">?</div>
+              <ShoppingBag className="empty-icon" aria-hidden="true" />
               <h3 className="empty-title">Aucune nouveauté disponible pour le moment</h3>
               <p className="empty-subtitle">Revenez bientôt pour découvrir nos dernières collections</p>
-              <button className="view-shop-btn" type="button" onClick={() => window.location.assign('/shop')}>
+              <Button type="button" onClick={() => window.location.assign('/shop')}>
                 Voir la boutique
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         ) : (
           <>
-            <div className="new-arrivals-grid">
+            <HomeReveal className="new-arrivals-grid" stagger>
               {visibleProducts.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  price={product.price}
-                  image={product.image}
-                  variants={product.variants}
-                  video={product.video}
-                  salesCount={product.sales_count}
-                />
+                <HomeRevealItem key={product.id} className="product-reveal-item">
+                  <ProductCard
+                    id={product.id}
+                    name={product.name}
+                    price={product.price}
+                    image={product.image}
+                    variants={product.variants}
+                    video={product.video}
+                    salesCount={product.sales_count}
+                  />
+                </HomeRevealItem>
               ))}
-            </div>
+            </HomeReveal>
 
             {showToggle && (
               <div className="new-products-cta">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   className="view-all-new-btn"
                   onClick={() => setExpanded((prev) => !prev)}
                   aria-expanded={expanded}
                 >
                   {expanded ? 'Réduire les nouveautés' : 'Afficher tous les nouveaux produits'}
-                  <svg className="cta-arrow" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
+                  <ChevronDown className={`cta-arrow${expanded ? ' is-expanded' : ''}`} aria-hidden="true" />
+                </Button>
               </div>
             )}
           </>
         )}
-      </div>
-    </section>
+    </Section>
   );
 };
 

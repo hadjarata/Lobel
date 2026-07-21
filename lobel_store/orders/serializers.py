@@ -138,7 +138,23 @@ class OrderReadSerializer(serializers.ModelSerializer):
         return {
             "can_pay": can_pay,
             "can_cancel": can_cancel,
-            "can_download_receipt": bool(obj.paid_at),
+            "can_download_receipt": bool(
+                obj.paid_at
+                and obj.snapshot_at
+                and obj.total_amount is not None
+                and obj.status in {
+                    Order.STATUS_PAID, Order.STATUS_PREPARING,
+                    Order.STATUS_SHIPPED, Order.STATUS_DELIVERED,
+                    Order.STATUS_REFUND_REQUIRED, Order.STATUS_REFUND_PENDING,
+                    Order.STATUS_REFUNDED, Order.STATUS_REFUND_FAILED,
+                }
+                and any(
+                    payment.status == "completed"
+                    and payment.amount == obj.total_amount
+                    and payment.currency == obj.currency
+                    for payment in obj.payments.all()
+                )
+            ),
             "can_contact_support": obj.status != Order.STATUS_CART,
             "can_reorder": False,
         }

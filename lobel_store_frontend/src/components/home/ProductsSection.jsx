@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import ProductCard from '../product/ProductCard';
+import { Button, Card, Section } from '../ui';
 import { getBestSellers } from '../../api/products';
 import { logger } from '../../utils/logger';
+import HomeReveal, { HomeRevealItem } from './HomeReveal';
 import './ProductsSection.css';
 
 const ProductsSection = () => {
@@ -15,8 +17,8 @@ const ProductsSection = () => {
       try {
         setLoading(true);
         setError(null);
-        const data = await getBestSellers(); // Utiliser l'endpoint bestsellers sans limite
-        let products = data.results;
+        const data = await getBestSellers();
+        let products = data;
         
         // Limiter à 3 produits maximum
         if (products.length > 3) {
@@ -36,52 +38,50 @@ const ProductsSection = () => {
   }, []);
 
   return (
-    <section className="products-section">
-      <div className="container">
-        <div className="section-header">
-          <h2 className="section-title">Les Incontournables</h2>
-          <p className="section-subtitle">
-            Les pièces que toutes nos femmes adorent
-          </p>
-        </div>
+    <Section
+      className="products-section"
+      background="subtle"
+      title="Best Sellers"
+      subtitle="Nos créations les plus convoitées"
+    >
         {loading ? (
-          <div className="products-loading">
-            <div className="loading-spinner"></div>
+          <div className="home-state products-loading" role="status">
+            <span className="home-spinner" aria-hidden="true" />
             <p>Chargement des best sellers...</p>
           </div>
         ) : error ? (
-          <div className="products-error">
+          <Card className="home-state products-error">
             <p>{error}</p>
-            <button className="retry-btn" onClick={() => window.location.reload()}>
+            <Button onClick={() => window.location.reload()}>
               Réessayer
-            </button>
-          </div>
+            </Button>
+          </Card>
         ) : products.length === 0 ? (
-          <div className="products-empty">
+          <Card className="home-state products-empty">
             <p>Aucun best seller pour le moment.</p>
-            <Link to="/shop" className="view-all-btn">
+            <Link to="/shop" className="btn btn-outline btn-medium view-all-btn">
               Découvrir tous nos produits
             </Link>
-          </div>
+          </Card>
         ) : (
-          <div className="products-grid">
+          <HomeReveal className="products-grid" stagger>
             {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                id={product.id}
-                name={product.name}
-                price={product.price}
-                image={product.image}
-                variants={product.variants}
-                video={product.video}
-                badge={product.badge}
-                salesCount={product.sales_count}
-              />
+              <HomeRevealItem key={product.id} className="product-reveal-item">
+                <ProductCard
+                  id={product.id}
+                  name={product.name}
+                  price={product.price}
+                  image={product.image}
+                  variants={product.variants}
+                  video={product.video}
+                  badge={product.badge}
+                  salesCount={product.sales_count}
+                />
+              </HomeRevealItem>
             ))}
-          </div>
+          </HomeReveal>
         )}
-      </div>
-    </section>
+    </Section>
   );
 };
 

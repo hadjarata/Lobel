@@ -41,9 +41,13 @@ jobs:
       - run: python manage.py check
       - run: python manage.py makemigrations --check --dry-run
       - run: python manage.py test
+      - run: python manage.py test orders.tests_phase9
       - run: python manage.py generate_swagger /tmp/openapi.yml -f yaml -o
       - run: grep -q "/payments/checkout/" /tmp/openapi.yml
       - run: grep -q "/orders/orders/{id}/receipt/" /tmp/openapi.yml
+      - run: grep -q "Justificatif PDF" /tmp/openapi.yml
+      - run: grep -q "/content/home-hero/" /tmp/openapi.yml
+      - run: grep -q "/content/custom-dress-service/" /tmp/openapi.yml
       - run: python manage.py reconcile_payments --dry-run --age-minutes 0 --limit 10
       - run: python manage.py expire_pending_orders --dry-run --older-than 1 --limit 10
       - run: python manage.py retry_order_notifications --dry-run --limit 10

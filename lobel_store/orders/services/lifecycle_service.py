@@ -114,6 +114,13 @@ class OrderLifecycleService:
 
         order._apply_status_transition(target_status)
         order.save(update_fields=list(dict.fromkeys(update_fields)))
+        if (
+            target_status == Order.STATUS_PAID
+            and order.snapshot_at
+            and order.total_amount is not None
+        ):
+            from orders.services.receipt_service import OrderReceiptService
+            OrderReceiptService().issue(order=order, payment=payment)
         OrderStatusHistory.objects.create(
             order=order, from_status=current, to_status=target_status,
             actor=actor if getattr(actor, "is_authenticated", False) else None,

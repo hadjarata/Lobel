@@ -1,35 +1,26 @@
 .section {
-  padding: 80px 0;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+  padding-block: var(--space-7);
 }
 
 .section-header {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: var(--space-6);
 }
 
 .section-title {
-  font-size: 3rem;
-  font-weight: 400;
-  color: #3D2D29;
-  margin-bottom: 16px;
-  letter-spacing: 0.05em;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
 }
 
 .section-subtitle {
-  font-size: 1.05rem;
-  color: #8B7D7D;
+  font-size: var(--font-size-lg);
+  color: var(--color-text-muted);
   margin: 0;
-  line-height: 1.8;
-  max-width: 600px;
-  margin: 0 auto;
-  font-weight: 300;
-  letter-spacing: 0.02em;
+  line-height: var(--line-height-relaxed);
+  max-width: 48rem;
+  font-weight: var(--font-weight-regular);
 }
 
 .section-content {
@@ -38,59 +29,31 @@
 
 /* Background variants */
 .section-white {
-  background: #ffffff;
+  background: var(--color-surface);
 }
-1ED
+
 .section-beige {
-  background: #F5F5DC;
+  background: var(--color-surface-subtle);
 }
 
 .section-rose {
-  background: linear-gradient(135deg, #F5E6ED 0%, #E8D5E8 100%);
+  color: var(--color-accent-contrast);
+  background: var(--color-accent);
 }
 
 .section-rose .section-title,
 .section-rose .section-subtitle {
-  color: white;
+  color: inherit;
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
+@media (min-width: 48rem) {
   .section {
-    padding: 60px 0;
-  }
-
-  .container {
-    padding: 0 15px;
-  }
-
-  .section-title {
-    font-size: 32px;
-  }
-
-  .section-subtitle {
-    font-size: 16px;
+    padding-block: var(--space-8);
   }
 }
 
-@media (max-width: 768px) {
+@media (min-width: 64rem) {
   .section {
-    padding: 40px 0;
-  }
-
-  .container {
-    padding: 0 10px;
-  }
-
-  .section-header {
-    margin-bottom: 40px;
-  }
-
-  .section-title {
-    font-size: 28px;
-  }
-
-  .section-subtitle {
-    font-size: 15px;
+    padding-block: var(--space-9);
   }
 }

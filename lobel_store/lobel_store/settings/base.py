@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'store',
     'users',
     'products',
+    'content.apps.ContentConfig',
     'orders',
     'payments',
     'rest_framework',
@@ -232,6 +233,11 @@ LIGDICASH_API_TOKEN = ""
 LIGDICASH_BASE_URL = ""
 LIGDICASH_STORE_NAME = ""
 LIGDICASH_STORE_URL = ""
+STORE_LEGAL_NAME = env("STORE_LEGAL_NAME", default="LobelStore")
+STORE_DISPLAY_NAME = env("STORE_DISPLAY_NAME", default="LobelStore")
+STORE_CONTACT_EMAIL = env("STORE_CONTACT_EMAIL", default="")
+STORE_CONTACT_PHONE = env("STORE_CONTACT_PHONE", default="")
+STORE_ADDRESS = env("STORE_ADDRESS", default="")
 LIGDICASH_RETURN_URL = ""
 LIGDICASH_CANCEL_URL = ""
 LIGDICASH_CALLBACK_URL = ""
@@ -272,6 +278,22 @@ for setting_name in (
         raise ValueError(f"{setting_name} must be a positive integer.")
 MAX_IMAGE_UPLOAD_BYTES = MAX_IMAGE_UPLOAD_MB * 1024 * 1024
 MAX_VIDEO_UPLOAD_BYTES = MAX_VIDEO_UPLOAD_MB * 1024 * 1024
+HOME_HERO_MAX_IMAGE_SIZE_MB = env.int(
+    "HOME_HERO_MAX_IMAGE_SIZE_MB", default=5
+)
+HOME_HERO_MAX_VIDEO_SIZE_MB = env.int(
+    "HOME_HERO_MAX_VIDEO_SIZE_MB", default=25
+)
+if HOME_HERO_MAX_IMAGE_SIZE_MB <= 0 or HOME_HERO_MAX_VIDEO_SIZE_MB <= 0:
+    raise ValueError("Home hero media limits must be positive.")
+HOME_HERO_MAX_IMAGE_SIZE_BYTES = HOME_HERO_MAX_IMAGE_SIZE_MB * 1024 * 1024
+HOME_HERO_MAX_VIDEO_SIZE_BYTES = HOME_HERO_MAX_VIDEO_SIZE_MB * 1024 * 1024
+CUSTOM_DRESS_MAX_IMAGE_SIZE_MB = env.int(
+    "CUSTOM_DRESS_MAX_IMAGE_SIZE_MB", default=5
+)
+if CUSTOM_DRESS_MAX_IMAGE_SIZE_MB <= 0:
+    raise ValueError("Custom dress image limit must be positive.")
+CUSTOM_DRESS_MAX_IMAGE_SIZE_BYTES = CUSTOM_DRESS_MAX_IMAGE_SIZE_MB * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = (MAX_VIDEO_UPLOAD_MB + 1) * 1024 * 1024
 
 # --- CORS & réseau local (développement) ---

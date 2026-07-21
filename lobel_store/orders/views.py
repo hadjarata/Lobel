@@ -1,7 +1,9 @@
-from html import escape
+import logging
 
 from django.db.models import Prefetch, Q
 from django.http import HttpResponse
+from drf_yasg import openapi
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework import permissions, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -17,11 +19,14 @@ from .serializers import (
 from .services.cart_service import CartError, CartService
 from .services.lifecycle_service import OrderLifecycleService, OrderTransitionError
 from .services.order_checkout_service import OrderCheckoutError, OrderCheckoutService
+from .services.receipt_pdf import render_order_receipt_pdf
+from .services.receipt_service import ELIGIBLE_RECEIPT_STATUSES, OrderReceiptService
 from .permissions import IsOrderOwner
 
 cart_service = CartService()
 lifecycle_service = OrderLifecycleService()
 order_checkout_service = OrderCheckoutService()
+logger = logging.getLogger(__name__)
 
 class OrderViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Order.objects.all()
@@ -243,49 +248,58 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
             reason_note=serializer.validated_data.get("reason", ""),
         )
 
+    @swagger_auto_schema(
+        method="get",
+        operation_summary="Télécharger le justificatif de commande PDF",
+        responses={
+            200: openapi.Response(
+                "Justificatif PDF",
+                schema=openapi.Schema(type=openapi.TYPE_FILE),
+            ),
+            409: "Paiement non confirmé.",
+            404: "Commande inexistante ou inaccessible.",
+        },
+    )
     @action(detail=True, methods=["get"], url_path="receipt")
     def receipt(self, request, pk=None):
         order = self.get_object()
-        if not order.paid_at:
+        payment = order.payments.filter(status="completed").order_by("-id").first()
+        if (
+            not order.paid_at
+            or not order.snapshot_at
+            or order.total_amount is None
+            or order.status not in ELIGIBLE_RECEIPT_STATUSES
+            or payment is None
+            or payment.amount != order.total_amount
+            or payment.currency != order.currency
+        ):
             return Response(
-                {"code": "receipt_unavailable", "detail": "Reçu indisponible."},
+                {
+                    "code": "receipt_unavailable",
+                    "detail": "Justificatif indisponible avant paiement confirmé.",
+                },
                 status=status.HTTP_409_CONFLICT,
             )
-        payment = order.payments.filter(status="completed").order_by("-id").first()
-        rows = "".join(
-            "<tr>"
-            f"<td>{escape(item.product_name or 'Produit')}</td>"
-            f"<td>{escape(item.variant_name or '')}</td>"
-            f"<td>{item.quantity}</td>"
-            f"<td>{escape(str(item.unit_price))}</td>"
-            f"<td>{escape(str(item.subtotal))}</td>"
-            "</tr>"
-            for item in order.items.all()
-        )
-        reference = (
-            payment.merchant_reference or payment.order_reference
-            if payment else order.transaction_id or ""
-        )
-        document = (
-            "<!doctype html><html lang=\"fr\"><meta charset=\"utf-8\">"
-            f"<title>Reçu commande {order.id}</title><body><h1>LobelStore</h1>"
-            "<h2>Justificatif de commande</h2>"
-            f"<p>Commande #{order.id}</p><p>Date : {order.paid_at:%Y-%m-%d %H:%M}</p>"
-            f"<p>Référence paiement : {escape(reference)}</p>"
-            "<table><thead><tr><th>Article</th><th>Variante</th><th>Qté</th>"
-            f"<th>Prix</th><th>Total</th></tr></thead><tbody>{rows}</tbody></table>"
-            f"<p>Sous-total : {order.subtotal_amount} {order.currency}</p>"
-            f"<p>Livraison : {order.shipping_amount} {order.currency}</p>"
-            f"<p>Réduction : {order.discount_amount} {order.currency}</p>"
-            f"<strong>Total : {order.total_amount} {order.currency}</strong>"
-            "<p>Ce document est un justificatif de commande, pas une facture fiscale.</p>"
-            "</body></html>"
-        )
-        response = HttpResponse(document, content_type="text/html; charset=utf-8")
+        receipt, _ = OrderReceiptService().issue(order=order, payment=payment)
+        try:
+            document = render_order_receipt_pdf(receipt)
+        except Exception:
+            logger.exception(
+                "order_receipt_pdf_render_failed order_id=%s receipt_id=%s",
+                order.id, receipt.id,
+            )
+            return Response(
+                {
+                    "code": "receipt_generation_failed",
+                    "detail": "Le justificatif est temporairement indisponible.",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        response = HttpResponse(document, content_type="application/pdf")
         response["Content-Disposition"] = (
-            f'attachment; filename="lobelstore-recu-commande-{order.id}.html"'
+            f'attachment; filename="lobelstore-justificatif-{receipt.receipt_number}.pdf"'
         )
-        response["Cache-Control"] = "private, no-store, max-age=0"
+        response["Cache-Control"] = "private, no-store"
         response["X-Content-Type-Options"] = "nosniff"
         return response
 

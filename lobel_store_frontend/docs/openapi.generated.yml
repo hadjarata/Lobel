@@ -61,6 +61,38 @@ paths:
       tags:
       - auth
     parameters: []
+  /content/custom-dress-service/:
+    get:
+      operationId: content_custom-dress-service_list
+      summary: Service actif de confection de robe sur mesure
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/CustomDressService'
+        '204':
+          description: Aucun service actuellement actif.
+      tags:
+      - content
+    parameters: []
+  /content/home-hero/:
+    get:
+      operationId: content_home-hero_list
+      summary: Couverture publiée de la page d'accueil
+      description: ''
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          schema:
+            $ref: '#/definitions/HomeHero'
+        '204':
+          description: Aucune couverture actuellement publiée.
+      tags:
+      - content
+    parameters: []
   /orders/order-items/:
     get:
       operationId: orders_order-items_list
@@ -473,13 +505,18 @@ paths:
   /orders/orders/{id}/receipt/:
     get:
       operationId: orders_orders_receipt
+      summary: Télécharger le justificatif de commande PDF
       description: ''
       parameters: []
       responses:
         '200':
-          description: ''
+          description: Justificatif PDF
           schema:
-            $ref: '#/definitions/OrderRead'
+            type: file
+        '409':
+          description: Paiement non confirmé.
+        '404':
+          description: Commande inexistante ou inaccessible.
       tags:
       - orders
     parameters:
@@ -1876,6 +1913,86 @@ definitions:
         type: string
         readOnly: true
         minLength: 1
+  CustomDressService:
+    required:
+    - title
+    - description
+    - whatsapp_phone
+    - whatsapp_message
+    - pricing_notice
+    type: object
+    properties:
+      title:
+        title: Title
+        type: string
+        maxLength: 180
+        minLength: 1
+      description:
+        title: Description
+        type: string
+        maxLength: 1000
+        minLength: 1
+      image_url:
+        title: Image url
+        type: string
+        readOnly: true
+      whatsapp_phone:
+        title: Whatsapp phone
+        description: 8 à 15 chiffres au format international, sans +, espace ni tiret.
+        type: string
+        maxLength: 15
+        minLength: 1
+      whatsapp_message:
+        title: Whatsapp message
+        description: 'Message générique uniquement : aucune donnée personnelle.'
+        type: string
+        maxLength: 1000
+        minLength: 1
+      button_label:
+        title: Button label
+        type: string
+        maxLength: 80
+        minLength: 1
+      availability_text:
+        title: Availability text
+        type: string
+        maxLength: 240
+      response_time_text:
+        title: Response time text
+        type: string
+        maxLength: 240
+      pricing_notice:
+        title: Pricing notice
+        type: string
+        maxLength: 400
+        minLength: 1
+      steps:
+        title: Steps
+        type: string
+        readOnly: true
+  HomeHero:
+    type: object
+    properties:
+      title:
+        title: Titre
+        type: string
+        maxLength: 180
+        minLength: 1
+      description:
+        title: Description
+        type: string
+        maxLength: 600
+        minLength: 1
+      media_type:
+        title: Type de couverture
+        type: string
+        enum:
+        - IMAGE
+        - VIDEO
+      media_url:
+        title: Media url
+        type: string
+        readOnly: true
   OrderItem:
     required:
     - variant_id

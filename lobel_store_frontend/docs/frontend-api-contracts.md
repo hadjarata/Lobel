@@ -136,8 +136,15 @@ le paiement public et `available_actions`.
 
 - `POST /api/orders/orders/{id}/cancel/` accepte une raison et revérifie
   propriétaire, statut et paiement.
-- `GET /api/orders/orders/{id}/receipt/` télécharge un justificatif HTML
+- `GET /api/orders/orders/{id}/receipt/` télécharge un justificatif PDF
   authentifié depuis les snapshots.
 
 Le client ne reçoit ni acteur d'audit, ni raison interne, ni metadata, ni
 payload fournisseur. Il n'envoie jamais de statut de commande.
+
+## Hero d'accueil
+
+`GET /api/content/home-hero/` retourne la configuration unique ou `204`. Le
+contrat public contient uniquement `title`, `description`, `media_type`
+(`IMAGE` ou `VIDEO`) et l'URL absolue `media_url`. Le bouton « Voir la
+boutique » et la route `/shop` sont statiques dans le frontend.

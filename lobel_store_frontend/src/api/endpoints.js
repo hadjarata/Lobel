@@ -1,4 +1,6 @@
 export const ENDPOINTS = {
+  HOME_HERO: "/api/content/home-hero/",
+  CUSTOM_DRESS_SERVICE: "/api/content/custom-dress-service/",
 
   // =========================
   // AUTH

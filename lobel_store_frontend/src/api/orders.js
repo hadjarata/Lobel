@@ -20,8 +20,15 @@ export const cancelOrder = (id, reason) => api.post(
 export const downloadOrderReceipt = (id) => api.get(
   ENDPOINTS.ORDER_RECEIPT(id),
   { responseType: 'blob' },
-).then(({ data, headers }) => ({
-  blob: data,
-  filename: headers['content-disposition']?.match(/filename="([^"]+)"/)?.[1]
-    || `lobelstore-recu-commande-${id}.html`,
-}));
+).then(({ data, headers }) => {
+  const contentType = headers['content-type'] || data?.type;
+  if (contentType !== 'application/pdf') {
+    throw new Error('invalid_receipt_content_type');
+  }
+  const candidate = headers['content-disposition']
+    ?.match(/filename="([A-Za-z0-9._-]+\.pdf)"/)?.[1];
+  return {
+    blob: data,
+    filename: candidate || `lobelstore-justificatif-commande-${id}.pdf`,
+  };
+});

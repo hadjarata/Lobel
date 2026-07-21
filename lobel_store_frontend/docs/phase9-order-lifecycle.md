@@ -50,7 +50,7 @@ payload paiement. Les actions disponibles proviennent du backend.
 
 ## Reçu
 
-`GET /api/orders/orders/{id}/receipt/` génère un justificatif HTML déterministe
+`GET /api/orders/orders/{id}/receipt/` génère un justificatif PDF déterministe
 depuis les snapshots. Il est authentifié, limité au propriétaire, servi avec
 `private, no-store`, un nom sûr et `nosniff`. Ce n'est pas une facture fiscale.
 

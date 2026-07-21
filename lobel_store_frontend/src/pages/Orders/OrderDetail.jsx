@@ -56,18 +56,20 @@ const OrderDetail = ({ confirmation = false }) => {
   };
 
   const receipt = async () => {
+    if (busy) return;
     setBusy(true);
+    let url;
     try {
       const result = await downloadOrderReceipt(id);
-      const url = URL.createObjectURL(result.blob);
+      url = URL.createObjectURL(result.blob);
       const anchor = document.createElement('a');
       anchor.href = url;
       anchor.download = result.filename;
       anchor.click();
-      URL.revokeObjectURL(url);
     } catch {
-      setError('Le reçu est temporairement indisponible.');
+      setError('Le justificatif est temporairement indisponible.');
     } finally {
+      if (url) URL.revokeObjectURL(url);
       setBusy(false);
     }
   };
@@ -80,6 +82,7 @@ const OrderDetail = ({ confirmation = false }) => {
     <Link to="/account/orders">← Mes commandes</Link>
     <section className="order-detail-card" aria-live="polite">
       <h1>{confirmation ? 'Confirmation de commande' : `Commande #${order.id}`}</h1>
+      {error && <p role="alert">{error}</p>}
       <p><strong>Commande #{order.id}</strong> — {formatDateTime(order.date_ordered)}</p>
       <p className="order-status" data-tone={state.tone}>{state.label}</p>
       {confirmation && order.payment?.status !== 'completed'
@@ -111,7 +114,9 @@ const OrderDetail = ({ confirmation = false }) => {
       </div>
       <div className="orders-actions">
         {order.available_actions.can_download_receipt
-          && <button type="button" disabled={busy} onClick={receipt}>Télécharger le reçu</button>}
+          && <button type="button" disabled={busy} onClick={receipt}>
+            {busy ? 'Téléchargement…' : 'Télécharger le justificatif PDF'}
+          </button>}
         {order.available_actions.can_pay && <Link to="/checkout">Reprendre le paiement</Link>}
         {order.available_actions.can_cancel
           && <button type="button" onClick={() => dialogRef.current?.showModal()}>Annuler la commande</button>}

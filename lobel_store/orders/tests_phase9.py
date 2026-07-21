@@ -1,6 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
-from io import StringIO
+from io import BytesIO, StringIO
 from unittest.mock import patch
 
 from django.contrib.auth.models import User
@@ -9,9 +9,10 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
+from pypdf import PdfReader
 
 from orders.models import (
-    CommercialDataDeletionError, Order, OrderNotificationReceipt,
+    CommercialDataDeletionError, Order, OrderNotificationReceipt, OrderReceipt,
 )
 from orders.services.cart_service import CartService
 from orders.services.expiration_service import OrderExpirationService
@@ -221,11 +222,71 @@ class Phase9OrderLifecycleTests(TestCase):
         self.client.force_authenticate(self.user)
         response = self.client.get(f"/api/orders/orders/{self.order.id}/receipt/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Cache-Control"], "private, no-store, max-age=0")
-        content = response.content.decode()
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        self.assertEqual(response["Cache-Control"], "private, no-store")
+        self.assertEqual(response["X-Content-Type-Options"], "nosniff")
+        self.assertRegex(
+            response["Content-Disposition"],
+            r'attachment; filename="lobelstore-justificatif-'
+            r'LOBEL-RCPT-\d{4}-\d{6}\.pdf"',
+        )
+        content = "\n".join(
+            page.extract_text() or ""
+            for page in PdfReader(BytesIO(response.content)).pages
+        )
         self.assertIn("Nom historique", content)
         self.assertIn("2500.00", content)
-        self.assertIn("pas une facture fiscale", content)
+        self.assertIn("facture fiscale certifiée", content)
+        self.assertIn(self.order.receipt.receipt_number, content)
+
+    def test_receipt_is_issued_once_with_immutable_snapshot(self):
+        payment = self.pay()
+        receipt = OrderReceipt.objects.get(order=self.order)
+        original_number = receipt.receipt_number
+        original_snapshot = receipt.snapshot
+
+        _, changed = OrderLifecycleService().transition_order(
+            order=self.order,
+            target_status=Order.STATUS_PAID,
+            payment=payment,
+            source="replayed_callback",
+        )
+
+        self.assertFalse(changed)
+        self.assertEqual(OrderReceipt.objects.filter(order=self.order).count(), 1)
+        receipt.refresh_from_db()
+        self.assertEqual(receipt.receipt_number, original_number)
+        self.assertEqual(receipt.snapshot, original_snapshot)
+
+    def test_receipt_snapshot_does_not_read_changed_catalogue(self):
+        self.pay()
+        receipt = OrderReceipt.objects.get(order=self.order)
+        self.variant.product.name = "Nouveau nom catalogue"
+        self.variant.product.price = Decimal("999999.00")
+        self.variant.product.save()
+
+        self.assertEqual(receipt.snapshot["items"][0]["product"], "Nom historique")
+        self.assertEqual(receipt.snapshot["items"][0]["unit_price"], "1000.00")
+        self.assertEqual(
+            receipt.snapshot["customer"]["address"],
+            "Adresse historique minimale",
+        )
+
+    def test_receipt_render_error_does_not_change_paid_order(self):
+        self.pay()
+        self.client.force_authenticate(self.user)
+        with patch(
+            "orders.views.render_order_receipt_pdf",
+            side_effect=RuntimeError("renderer failure"),
+        ):
+            response = self.client.get(
+                f"/api/orders/orders/{self.order.id}/receipt/"
+            )
+        self.assertEqual(response.status_code, 500)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.STATUS_PAID)
+        self.assertIsNotNone(self.order.paid_at)
+        self.assertEqual(OrderReceipt.objects.filter(order=self.order).count(), 1)
 
     def test_other_user_cannot_read_order_or_receipt(self):
         self.pay()

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import CollectionCard from '../product/CollectionCard';
+import { Button, Card, Section } from '../ui';
 import { getCollections } from '../../api/products';
 import { logger } from '../../utils/logger';
+import HomeReveal, { HomeRevealItem } from './HomeReveal';
 import './CollectionsSection.css';
 
 const CollectionsSection = () => {
@@ -28,48 +30,50 @@ const CollectionsSection = () => {
   }, []);
 
   return (
-    <section className="collections-section">
-      <div className="container">
-        <div className="section-header">
-          <h2 className="section-title">Nos Collections</h2>
-          <p className="section-subtitle">
-            Des univers curatés pour exprimer votre style avec grâce
-          </p>
-        </div>
+    <Section
+      className="collections-section"
+      background="subtle"
+      title="Nos Collections"
+      subtitle="Des univers curatés pour exprimer votre style avec grâce"
+    >
         {loading ? (
-          <div className="collections-loading">
-            <div className="loading-spinner"></div>
+          <div className="home-state collections-loading" role="status">
+            <span className="home-spinner" aria-hidden="true" />
             <p>Chargement des collections...</p>
           </div>
         ) : error ? (
-          <div className="collections-error">
+          <Card className="home-state collections-error">
             <p>{error}</p>
-            <button className="retry-btn" onClick={() => window.location.reload()}>
+            <Button onClick={() => window.location.reload()}>
               Réessayer
-            </button>
-          </div>
+            </Button>
+          </Card>
         ) : collections.length === 0 ? (
-          <div className="collections-empty">
+          <Card className="home-state collections-empty">
             <p>Aucune collection disponible pour le moment.</p>
-          </div>
+          </Card>
         ) : (
-          <div className="collections-grid">
-            {collections.map((collection) => (
-              <CollectionCard
+          <HomeReveal className="collections-grid" stagger>
+            {collections.map((collection, index) => (
+              <HomeRevealItem
                 key={collection.id}
-                title={collection.name || collection.title}
-                subtitle={collection.description || collection.subtitle}
-                image={collection.image_url || collection.image}
-                video={collection.video_url || collection.video}
-                coverType={collection.cover_type || 'image'}
-                hasProducts={Array.isArray(collection.products) && collection.products.length > 0}
-                link={`/shop?collection=${collection.slug}`}
-              />
+                className="collection-reveal-item"
+                data-collection-number={String(index + 1).padStart(2, '0')}
+              >
+                <CollectionCard
+                  title={collection.name || collection.title}
+                  subtitle={collection.description || collection.subtitle}
+                  image={collection.image_url || collection.image}
+                  video={collection.video_url || collection.video}
+                  coverType={collection.cover_type || 'image'}
+                  hasProducts={Array.isArray(collection.products) && collection.products.length > 0}
+                  link={`/shop?collection=${collection.slug}`}
+                />
+              </HomeRevealItem>
             ))}
-          </div>
+          </HomeReveal>
         )}
-      </div>
-    </section>
+    </Section>
   );
 };
 
