@@ -16,7 +16,7 @@ const Navbar = () => {
           <Link to="/" className="logo-link"><img src="/logo.jpg" alt="Lobel Store" className="logo-image" /></Link>
         </div>
         <div className="navbar-nav">
-          <NavItem to="/" icon={Home}>Accueil</NavItem>
+          <NavItem to="/" icon={Home} end>Accueil</NavItem>
           <NavItem to="/shop" icon={ShoppingBag}>Boutique</NavItem>
           <NavItem to="/cart" icon={ShoppingCart} badge={itemCount > 0 ? itemCount : null}>Panier</NavItem>
           {isAuthenticated && <NavItem to="/profile" icon={User}>Profil</NavItem>}

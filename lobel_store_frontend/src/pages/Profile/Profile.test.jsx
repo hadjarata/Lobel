@@ -4,19 +4,23 @@ import {
 } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchCart } from '../../api/cart';
 import { getOrders } from '../../api/orders';
 import { getPayments } from '../../api/payments';
 import { getCustomerProfile, updateCustomerProfile } from '../../api/profile';
 import { ApiValidationError } from '../../utils/apiErrors';
 import Profile from './Profile';
 
-vi.mock('../../api/cart', () => ({ fetchCart: vi.fn() }));
 vi.mock('../../api/orders', () => ({ getOrders: vi.fn() }));
 vi.mock('../../api/payments', () => ({ getPayments: vi.fn() }));
 vi.mock('../../api/profile', () => ({
   getCustomerProfile: vi.fn(),
   updateCustomerProfile: vi.fn(),
+}));
+vi.mock('../../context/authState', () => ({
+  useAuth: () => ({
+    changePassword: vi.fn(),
+    operationPending: false,
+  }),
 }));
 
 const customer = {
@@ -35,8 +39,8 @@ const customer = {
   date_created: '2025-01-10T10:00:00Z',
 };
 
-const renderProfile = () => render(
-  <MemoryRouter initialEntries={['/profile']}>
+const renderProfile = (entry = '/profile') => render(
+  <MemoryRouter initialEntries={[entry]}>
     <Profile />
   </MemoryRouter>,
 );
@@ -49,7 +53,6 @@ describe('Page Profil', () => {
     getCustomerProfile.mockResolvedValue(customer);
     getOrders.mockResolvedValue({ results: [] });
     getPayments.mockResolvedValue({ results: [] });
-    fetchCart.mockResolvedValue({ cart_items: 0, items: [] });
     updateCustomerProfile.mockResolvedValue(customer);
   });
 
@@ -113,5 +116,15 @@ describe('Page Profil', () => {
     await waitFor(() => expect(screen.getByText('Ce prénom est invalide.')).toBeVisible());
     expect(firstName).toHaveValue('Valeur conservée');
     expect(screen.getByRole('button', { name: 'Enregistrer les modifications' })).toBeEnabled();
+  });
+
+  it('retire les raccourcis redondants et présente la suppression du compte', async () => {
+    renderProfile('/profile?tab=settings');
+
+    expect(await screen.findByRole('heading', { name: 'Suppression du compte' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Supprimer mon compte' })).toBeDisabled();
+    expect(screen.queryByText('Mon panier')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Aller à la boutique' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Se déconnecter' })).not.toBeInTheDocument();
   });
 });

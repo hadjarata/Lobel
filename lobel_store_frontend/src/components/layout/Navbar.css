@@ -94,7 +94,7 @@
   font-weight: 400;
   font-size: 14px;
   letter-spacing: 0.02em;
-  border-radius: 0;
+  border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
@@ -105,16 +105,32 @@
   position: relative;
 }
 
-.nav-item:hover {
+.nav-item:hover:not(.nav-item-active) {
   color: var(--color-text);
   background: var(--color-gray-100);
   border-color: var(--color-border);
 }
 
-.nav-item.nav-item-link.active {
-  color: var(--color-text);
-  background: var(--color-gray-100);
-  border-color: var(--color-border);
+.nav-item.nav-item-active {
+  color: #fff;
+  background: #111;
+  border-color: #111;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid #111;
+  outline-offset: 3px;
+}
+
+.nav-item.nav-item-active:focus-visible {
+  outline-color: #555;
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px #111;
+}
+
+.nav-item.nav-item-active .nav-item-badge {
+  border: 1px solid #fff;
 }
 
 /* NavItem spécifiques */
@@ -163,6 +179,7 @@
   .nav-item {
     padding: 12px;
     min-width: 48px;
+    min-height: 48px;
     justify-content: center;
   }
 
@@ -203,5 +220,6 @@
   .nav-item {
     padding: 10px;
     min-width: 44px;
+    min-height: 44px;
   }
 }

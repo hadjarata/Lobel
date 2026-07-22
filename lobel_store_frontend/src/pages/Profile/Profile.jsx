@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
 import { panelVariants, springSnappy } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
-import { fetchCart } from '../../api/cart';
 import { getOrders } from '../../api/orders';
 import { getPayments } from '../../api/payments';
 import { getCustomerProfile } from '../../api/profile';
@@ -14,7 +13,6 @@ import { VALID_PROFILE_TABS } from '../../components/profile/profileNavConfig';
 import ProfileInfoPanel from '../../components/profile/ProfileInfoPanel';
 import ProfileOrdersPanel from '../../components/profile/ProfileOrdersPanel';
 import ProfilePaymentsPanel from '../../components/profile/ProfilePaymentsPanel';
-import ProfileCartPanel from '../../components/profile/ProfileCartPanel';
 import ProfileSettingsPanel from '../../components/profile/ProfileSettingsPanel';
 import { logger } from '../../utils/logger';
 import './Profile.css';
@@ -24,11 +22,9 @@ const Profile = () => {
   const [customer, setCustomer] = useState(null);
   const [orders, setOrders] = useState([]);
   const [payments, setPayments] = useState([]);
-  const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [paymentsLoading, setPaymentsLoading] = useState(true);
-  const [cartLoading, setCartLoading] = useState(true);
   const [error, setError] = useState('');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
 
@@ -85,22 +81,9 @@ const Profile = () => {
     }
   }, []);
 
-  const loadCartData = useCallback(async () => {
-    setCartLoading(true);
-    try {
-      const cartData = await fetchCart({ notify: false });
-      setCart(cartData);
-    } catch (err) {
-      logger.error('Error loading cart:', err);
-      setCart(null);
-    } finally {
-      setCartLoading(false);
-    }
-  }, []);
-
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadProfile(), loadOrders(), loadPayments(), loadCartData()]);
-  }, [loadProfile, loadOrders, loadPayments, loadCartData]);
+    await Promise.all([loadProfile(), loadOrders(), loadPayments()]);
+  }, [loadProfile, loadOrders, loadPayments]);
 
   useEffect(() => {
     const init = async () => {
@@ -111,20 +94,13 @@ const Profile = () => {
 
     init();
 
-    const handleCartUpdated = () => {
-      loadCartData();
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdated);
-    return () => window.removeEventListener('cartUpdated', handleCartUpdated);
-  }, [refreshAll, loadCartData]);
+  }, [refreshAll]);
 
   const stats = useMemo(
     () => ({
       ordersCount: orders.filter((order) => order.complete || order.status === 'paid').length,
-      cartCount: cart?.cart_items ?? cart?.items?.length ?? 0,
     }),
-    [orders, cart],
+    [orders],
   );
 
   const handleProfileUpdated = (updatedCustomer) => {
@@ -158,10 +134,6 @@ const Profile = () => {
             onRefresh={loadPayments}
             onViewOrder={handleViewOrderFromPayment}
           />
-        );
-      case 'cart':
-        return (
-          <ProfileCartPanel cart={cart} loading={cartLoading} onRefresh={loadCartData} />
         );
       case 'settings':
         return <ProfileSettingsPanel />;

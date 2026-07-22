@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import './Navbar.css';
 
 const NavItem = ({ 
@@ -9,20 +9,34 @@ const NavItem = ({
   onClick,
   className = '',
   badge,
-  isButton = false 
+  isButton = false,
+  end = false,
 }) => {
-  const Component = isButton ? 'button' : Link;
-  const props = isButton ? { onClick } : { to, onClick };
+  if (isButton) {
+    return (
+      <button type="button" className={`nav-item ${className}`} onClick={onClick}>
+        {Icon && <Icon size={20} aria-hidden="true" />}
+        <span className="nav-item-text">{children}</span>
+        {badge && <span className="nav-item-badge">{badge}</span>}
+      </button>
+    );
+  }
 
   return (
-    <Component 
-      className={`nav-item ${className}`}
-      {...props}
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick}
+      className={({ isActive }) => [
+        'nav-item',
+        className,
+        isActive ? 'nav-item-active' : '',
+      ].filter(Boolean).join(' ')}
     >
-      {Icon && <Icon size={20} />}
+      {Icon && <Icon size={20} aria-hidden="true" />}
       <span className="nav-item-text">{children}</span>
       {badge && <span className="nav-item-badge">{badge}</span>}
-    </Component>
+    </NavLink>
   );
 };
 

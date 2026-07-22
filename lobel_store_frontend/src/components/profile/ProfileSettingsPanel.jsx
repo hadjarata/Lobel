@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/authState';
 import { validatePassword } from '../../api/auth';
 
 const ProfileSettingsPanel = () => {
-  const { changePassword, logout, operationPending } = useAuth();
+  const { changePassword, operationPending } = useAuth();
   const [passwords, setPasswords] = useState({
     current_password: '',
     password: '',
@@ -65,14 +64,13 @@ const ProfileSettingsPanel = () => {
             </button>
           </form>
         </article>
-        <article className="profile-settings-card">
-          <div><h3>Boutique</h3><p>Retournez sur la boutique pour découvrir nos nouveautés.</p></div>
-          <Link to="/shop" className="profile-btn profile-btn-outline profile-btn-small">Aller à la boutique</Link>
-        </article>
         <article className="profile-settings-card profile-settings-card-danger">
-          <div><h3>Déconnexion</h3><p>Fermez votre session sur cet appareil.</p></div>
-          <button type="button" className="profile-btn profile-btn-danger profile-btn-small" onClick={logout} disabled={operationPending}>
-            Se déconnecter
+          <div>
+            <h3>Suppression du compte</h3>
+            <p>Cette action sera disponible lorsque la suppression sécurisée du compte sera activée.</p>
+          </div>
+          <button type="button" className="profile-btn profile-btn-danger profile-btn-small" disabled>
+            Supprimer mon compte
           </button>
         </article>
       </div>
