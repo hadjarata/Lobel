@@ -32,6 +32,7 @@ const CollectionsSection = () => {
   return (
     <Section
       className="collections-section"
+      animateTitle
       background="subtle"
       title="Nos Collections"
       subtitle="Des univers curatés pour exprimer votre style avec grâce"

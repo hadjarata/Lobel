@@ -8,6 +8,7 @@ import {
 import './CustomDressSection.css';
 
 const MotionLi = motion.li;
+const MotionH2 = motion.h2;
 
 const CustomDressSection = () => {
   const [service, setService] = useState(null);
@@ -60,7 +61,15 @@ const CustomDressSection = () => {
         </div>
         <div className="custom-dress-content">
           <Badge className="custom-dress-eyebrow">Confection sur mesure</Badge>
-          <h2 id="custom-dress-title">{service.title}</h2>
+          <MotionH2
+            id="custom-dress-title"
+            initial={reducedMotion ? false : { y: 18, letterSpacing: '0.02em' }}
+            whileInView={{ y: 0, letterSpacing: '-0.025em' }}
+            viewport={{ once: true, amount: 0.7 }}
+            transition={{ duration: reducedMotion ? 0 : 0.8, ease: [0.2, 0, 0, 1] }}
+          >
+            {service.title}
+          </MotionH2>
           <p className="custom-dress-description">{service.description}</p>
           <div className="custom-dress-details">
             {service.availabilityText && <p>{service.availabilityText}</p>}

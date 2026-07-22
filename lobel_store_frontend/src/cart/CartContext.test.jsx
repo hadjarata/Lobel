@@ -31,7 +31,8 @@ const Probe = () => {
   return <>
     <output data-testid="state">{JSON.stringify({
       status: cart.status, count: cart.itemCount, guest: cart.isGuest,
-      lines: cart.lines.length, error: cart.error?.code || null,
+      lines: cart.lines.length, image: cart.lines[0]?.image || null,
+      error: cart.error?.code || null,
     })}</output>
     <button onClick={() => cart.addItem(variant, 1)}>add</button>
     <button onClick={() => cart.lines[0] && cart.updateItemQuantity(cart.lines[0], 2)}>update</button>
@@ -91,10 +92,23 @@ describe('central cart lifecycle', () => {
   });
   it('loads only the server cart when authenticated', async () => {
     state.auth = { isAuthenticated: true, status: 'authenticated', user: { id: 1 } };
-    state.api.fetchServerCart.mockResolvedValue({ ...emptyServer, id: 1, cart_items: 3 });
+    state.api.resolveVariants.mockResolvedValue({
+      variants: [{ ...variant, image: 'https://cdn.test/robe.jpg' }], missingIds: [],
+    });
+    state.api.fetchServerCart.mockResolvedValue({
+      ...emptyServer,
+      id: 1,
+      cart_items: 3,
+      items: [{
+        id: 4, variant_id: 7, quantity: 3, unit_price: '1250.50',
+        line_total: '3751.50', currency: 'XOF', variant: { id: 7 },
+      }],
+    });
     mount();
-    await waitFor(() => expect(snapshot()).toMatchObject({ count: 3, guest: false }));
-    expect(state.api.resolveVariants).not.toHaveBeenCalled();
+    await waitFor(() => expect(snapshot()).toMatchObject({
+      count: 3, guest: false, image: 'https://cdn.test/robe.jpg',
+    }));
+    expect(state.api.resolveVariants).toHaveBeenCalledWith([7], expect.any(Object));
   });
   it('uses a server mutation for authenticated add', async () => {
     state.auth = { isAuthenticated: true, status: 'authenticated', user: { id: 1 } };

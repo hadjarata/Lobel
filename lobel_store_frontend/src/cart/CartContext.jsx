@@ -51,6 +51,27 @@ const hydrateGuest = async (signal) => {
   };
 };
 
+const hydrateServerImages = async (cart, signal) => {
+  const variantIds = [...new Set((cart.items || [])
+    .map((item) => item.variant_id)
+    .filter(Number.isInteger))];
+  if (!variantIds.length) return cart;
+  try {
+    const resolved = await resolveVariants(variantIds, { signal });
+    const byId = new Map(resolved.variants.map((variant) => [variant.id, variant]));
+    return {
+      ...cart,
+      items: cart.items.map((item) => {
+        const variant = byId.get(item.variant_id);
+        return variant ? { ...item, image: variant.image, variant: { ...variant, ...item.variant } } : item;
+      }),
+    };
+  } catch (requestError) {
+    if (signal?.aborted) throw requestError;
+    return cart;
+  }
+};
+
 export const CartProvider = ({ children }) => {
   const { isAuthenticated, status: authStatus, user } = useAuth();
   const [status, setStatus] = useState(CART_STATUS.IDLE);
@@ -75,7 +96,12 @@ export const CartProvider = ({ children }) => {
     setStatus(CART_STATUS.LOADING);
     try {
       const result = isAuthenticated
-        ? { cart: await fetchServerCart({ signal: request.signal }), errors: {} }
+        ? {
+          cart: await hydrateServerImages(
+            await fetchServerCart({ signal: request.signal }), request.signal,
+          ),
+          errors: {},
+        }
         : await hydrateGuest(request.signal);
       if (request.id === generation.current) {
         setCart(result.cart); setLineErrors(result.errors); setError(null);
@@ -93,7 +119,7 @@ export const CartProvider = ({ children }) => {
 
   const mergeStoredCart = useCallback(async () => {
     const stored = readGuestCart();
-    if (!stored.items.length) return fetchServerCart();
+    if (!stored.items.length) return hydrateServerImages(await fetchServerCart());
     const keyed = ensureMergeKey();
     const response = await mergeGuestCart(keyed.items, keyed.pending_merge_key);
     const accepted = new Map([...response.merged_items, ...response.adjusted_items]
@@ -105,7 +131,7 @@ export const CartProvider = ({ children }) => {
     if (remaining.length) writeGuestCart({ ...keyed, items: remaining, pending_merge_key: null });
     else clearGuestCartStorage();
     setMergeReport(response);
-    return response.cart;
+    return hydrateServerImages(response.cart);
   }, []);
 
   useEffect(() => {

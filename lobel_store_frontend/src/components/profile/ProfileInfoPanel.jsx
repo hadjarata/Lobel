@@ -109,7 +109,7 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
     <section className="profile-panel">
       <div className="profile-panel-head">
         <div>
-          <h2 className="profile-panel-title">Mon profil</h2>
+          <h2 className="profile-panel-title">Informations personnelles</h2>
           <p className="profile-panel-subtitle">
             Gérez vos informations personnelles et de livraison.
           </p>
@@ -129,98 +129,73 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
       </div>
 
       {!isEditing ? (
-        <dl className="profile-info-grid">
-          <div className="profile-info-item">
-            <dt>Nom complet</dt>
-            <dd>{getCustomerDisplayName(customer)}</dd>
-          </div>
-          <div className="profile-info-item">
-            <dt>Email</dt>
-            <dd>{customer.user?.email || '—'}</dd>
-          </div>
-          <div className="profile-info-item">
-            <dt>Pays</dt>
-            <dd>{customer.country || '—'}</dd>
-          </div>
-          <div className="profile-info-item">
-            <dt>Téléphone</dt>
-            <dd>{customer.phone_number || '—'}</dd>
-          </div>
-          <div className="profile-info-item profile-info-item-wide">
-            <dt>Adresse</dt>
-            <dd>{customer.address || '—'}</dd>
-          </div>
-          <div className="profile-info-item">
-            <dt>Membre depuis</dt>
-            <dd>{formatDate(customer.date_created)}</dd>
-          </div>
-        </dl>
+        <div className="profile-info-sections">
+          <section className="profile-info-section" aria-labelledby="profile-identity-title">
+            <h3 id="profile-identity-title">Identité</h3>
+            <dl className="profile-info-grid">
+              <div className="profile-info-item"><dt>Nom complet</dt><dd>{getCustomerDisplayName(customer)}</dd></div>
+              <div className="profile-info-item"><dt>Membre depuis</dt><dd>{formatDate(customer.date_created)}</dd></div>
+            </dl>
+          </section>
+          <section className="profile-info-section" aria-labelledby="profile-contact-title">
+            <h3 id="profile-contact-title">Coordonnées</h3>
+            <dl className="profile-info-grid">
+              <div className="profile-info-item"><dt>Email</dt><dd>{customer.user?.email || '—'}</dd></div>
+              <div className="profile-info-item"><dt>Téléphone</dt><dd>{customer.phone_number || '—'}</dd></div>
+            </dl>
+          </section>
+          <section className="profile-info-section" aria-labelledby="profile-address-title">
+            <h3 id="profile-address-title">Adresse</h3>
+            <dl className="profile-info-grid">
+              <div className="profile-info-item"><dt>Pays</dt><dd>{customer.country || '—'}</dd></div>
+              <div className="profile-info-item"><dt>Adresse</dt><dd>{customer.address || '—'}</dd></div>
+            </dl>
+          </section>
+        </div>
       ) : (
         <form className="profile-form" onSubmit={handleSubmit}>
-          <div className="profile-form-grid">
-            <label className="profile-field">
-              <span>Prénom</span>
-              <input
-                type="text"
-                name="first_name"
-                value={form.first_name}
-                onChange={handleChange}
-              />
-              {formErrors.first_name && (
-                <span className="profile-field-error">{formErrors.first_name}</span>
-              )}
-            </label>
-            <label className="profile-field">
-              <span>Nom</span>
-              <input
-                type="text"
-                name="last_name"
-                value={form.last_name}
-                onChange={handleChange}
-              />
-              {formErrors.last_name && (
-                <span className="profile-field-error">{formErrors.last_name}</span>
-              )}
-            </label>
-            <label className="profile-field">
-              <span>Pays (code ISO)</span>
-              <input
-                type="text"
-                name="country"
-                value={form.country}
-                onChange={handleChange}
-                placeholder="SN"
-              />
-              {formErrors.country && (
-                <span className="profile-field-error">{formErrors.country}</span>
-              )}
-            </label>
-            <label className="profile-field">
-              <span>Téléphone</span>
-              <input
-                type="tel"
-                name="phone_number"
-                value={form.phone_number}
-                onChange={handleChange}
-                placeholder="+221..."
-              />
-              {formErrors.phone_number && (
-                <span className="profile-field-error">{formErrors.phone_number}</span>
-              )}
-            </label>
-            <label className="profile-field profile-field-wide">
-              <span>Adresse</span>
-              <textarea
-                name="address"
-                value={form.address}
-                onChange={handleChange}
-                rows={3}
-              />
-              {formErrors.address && (
-                <span className="profile-field-error">{formErrors.address}</span>
-              )}
-            </label>
-          </div>
+          <fieldset className="profile-form-section">
+            <legend>Identité</legend>
+            <div className="profile-form-grid">
+              <label className="profile-field">
+                <span>Prénom</span>
+                <input type="text" name="first_name" value={form.first_name} onChange={handleChange} />
+                {formErrors.first_name && <span className="profile-field-error">{formErrors.first_name}</span>}
+              </label>
+              <label className="profile-field">
+                <span>Nom</span>
+                <input type="text" name="last_name" value={form.last_name} onChange={handleChange} />
+                {formErrors.last_name && <span className="profile-field-error">{formErrors.last_name}</span>}
+              </label>
+            </div>
+          </fieldset>
+          <fieldset className="profile-form-section">
+            <legend>Coordonnées</legend>
+            <div className="profile-form-grid">
+              <label className="profile-field profile-field-wide">
+                <span>Téléphone</span>
+                <input type="tel" name="phone_number" value={form.phone_number}
+                  onChange={handleChange} placeholder="+221..." />
+                {formErrors.phone_number && <span className="profile-field-error">{formErrors.phone_number}</span>}
+              </label>
+            </div>
+          </fieldset>
+          <fieldset className="profile-form-section">
+            <legend>Adresse</legend>
+            <div className="profile-form-grid">
+              <label className="profile-field">
+                <span>Pays (code ISO)</span>
+                <input type="text" name="country" value={form.country}
+                  onChange={handleChange} placeholder="SN" />
+                {formErrors.country && <span className="profile-field-error">{formErrors.country}</span>}
+              </label>
+              <label className="profile-field profile-field-wide">
+                <span>Adresse</span>
+                <textarea name="address" value={form.address} onChange={handleChange} rows={3} />
+                {formErrors.address && <span className="profile-field-error">{formErrors.address}</span>}
+              </label>
+            </div>
+          </fieldset>
           <div className="profile-form-actions">
             <button
               type="button"
@@ -234,7 +209,7 @@ const ProfileInfoPanel = ({ customer, onUpdated, startEditing = false, onEditing
               Annuler
             </button>
             <button type="submit" className="profile-btn profile-btn-primary" disabled={isSaving}>
-              {isSaving ? 'Enregistrement...' : 'Enregistrer'}
+              {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
             </button>
           </div>
         </form>

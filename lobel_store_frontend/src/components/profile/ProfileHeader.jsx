@@ -22,7 +22,8 @@ const ProfileHeader = ({ customer, onEditProfile, compact = false }) => {
         </div>
         <div className="profile-header-info">
           {!compact && <p className="profile-eyebrow">Espace client</p>}
-          <h1 className="profile-header-name">{displayName}</h1>
+          <h1 className="profile-page-title">Mon profil</h1>
+          <p className="profile-header-name">{displayName}</p>
           {!compact && <p className="profile-header-email">{email}</p>}
           <span className={`profile-status-badge profile-status-${accountStatus.tone}`}>
             {accountStatus.label}

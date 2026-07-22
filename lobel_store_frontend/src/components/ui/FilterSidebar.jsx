@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion as Motion } from 'framer-motion';
+import { ChevronDown, X } from 'lucide-react';
 import { backdropVariants, slideFromLeftVariants, springModal, springSheet } from '../../utils/motion';
 import { useMotionTransition } from '../../utils/useMotionTransition';
 import './FilterSidebar.css';
@@ -14,7 +15,7 @@ const Section = ({ name, title, expanded, toggle, children }) => (
       onClick={() => toggle(name)}
     >
       <span className="filter-section-title">{title}</span>
-      <span aria-hidden="true" className={`chevron ${expanded ? 'open' : ''}`}>⌄</span>
+      <ChevronDown aria-hidden="true" className={`chevron ${expanded ? 'open' : ''}`} />
     </button>
     {expanded && <div id={`filter-${name}`} className="filter-section-content">{children}</div>}
   </div>
@@ -53,7 +54,9 @@ const FilterSidebar = ({
         <div className="filter-actions">
           <button type="button" className="clear-filters-btn" onClick={onClear}>Tout effacer</button>
           {isMobile && (
-            <button type="button" className="close-filters-btn" aria-label="Fermer les filtres" onClick={onClose}>×</button>
+            <button type="button" className="close-filters-btn" aria-label="Fermer les filtres" onClick={onClose}>
+              <X aria-hidden="true" />
+            </button>
           )}
         </div>
       </div>

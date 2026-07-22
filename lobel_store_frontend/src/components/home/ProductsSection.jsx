@@ -40,6 +40,7 @@ const ProductsSection = () => {
   return (
     <Section
       className="products-section"
+      animateTitle
       background="subtle"
       title="Best Sellers"
       subtitle="Nos créations les plus convoitées"

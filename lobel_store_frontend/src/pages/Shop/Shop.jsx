@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Search, SlidersHorizontal } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getCatalogFilterOptions } from '../../api/products';
 import {
@@ -15,9 +17,11 @@ import { normalizeApiError } from '../../utils/apiErrors';
 import './Shop.css';
 
 const EMPTY_OPTIONS = { categories: [], collections: [], colors: [], sizes: [], price: {} };
+const MotionDiv = motion.div;
 
 const Shop = () => {
   const navigate = useNavigate();
+  const reducedMotion = useReducedMotion();
   const [searchParams, setSearchParams] = useSearchParams();
   const query = useMemo(() => parseCatalogQuery(searchParams), [searchParams]);
   const [searchInput, setSearchInput] = useState(query.search);
@@ -114,6 +118,7 @@ const Shop = () => {
     <main className="shop">
       <header className="shop-header">
         <div className="shop-header-content">
+          <span className="shop-eyebrow">LobelStore · Sélection</span>
           <h1 className="shop-title">{activeCollection?.name || 'Boutique'}</h1>
           <p className="shop-subtitle">
             {activeCollection
@@ -130,7 +135,10 @@ const Shop = () => {
               placeholder="Nom, catégorie, collection ou référence…"
               onChange={(event) => setSearchInput(event.target.value)}
             />
-            <button type="submit">Rechercher</button>
+            <button type="submit">
+              <Search aria-hidden="true" />
+              <span>Rechercher</span>
+            </button>
           </form>
           {isMobile && (
             <button
@@ -140,6 +148,7 @@ const Shop = () => {
               aria-controls="mobile-catalog-filters"
               onClick={() => setIsMobileFilterOpen(true)}
             >
+              <SlidersHorizontal aria-hidden="true" />
               Filtres {activeFilters > 0 && <span className="filter-count">{activeFilters}</span>}
             </button>
           )}
@@ -163,17 +172,11 @@ const Shop = () => {
             <h2 ref={resultsHeading} tabIndex="-1">
               {state.loading ? 'Chargement…' : `${state.count} produit${state.count > 1 ? 's' : ''}`}
             </h2>
-            <label>
-              Trier par
-              <select value={query.sort} onChange={(event) => changeFilter('sort', event.target.value)}>
-                <option value="newest">Plus récents</option>
-                <option value="popular">Popularité</option>
-                <option value="price_asc">Prix croissant</option>
-                <option value="price_desc">Prix décroissant</option>
-                <option value="name_asc">Nom</option>
-                <option value="oldest">Plus anciens</option>
-              </select>
-            </label>
+            {activeFilters > 0 && (
+              <button type="button" className="catalog-clear" onClick={clearFilters}>
+                Réinitialiser les filtres
+              </button>
+            )}
           </div>
           <div className="sr-only" role="status" aria-live="polite">
             {state.loading ? 'Chargement des produits' : `${state.count} résultats chargés`}
@@ -192,12 +195,20 @@ const Shop = () => {
               <button type="button" onClick={clearFilters}>Effacer les filtres</button>
             </div>
           ) : (
-            <ProductGrid
-              products={state.products}
-              loading={state.loading}
-              columns={4}
-              onProductClick={(product) => navigate(`/product/${product.id}`)}
-            />
+            <MotionDiv
+              className="shop-grid-reveal"
+              key={serializeCatalogQuery(query).toString()}
+              initial={reducedMotion ? false : { opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reducedMotion ? 0 : 0.28, ease: [0.2, 0, 0, 1] }}
+            >
+              <ProductGrid
+                products={state.products}
+                loading={state.loading}
+                columns={4}
+                onProductClick={(product) => navigate(`/product/${product.id}`)}
+              />
+            </MotionDiv>
           )}
           {!state.loading && !state.error && state.count > 0 && (
             <Pagination

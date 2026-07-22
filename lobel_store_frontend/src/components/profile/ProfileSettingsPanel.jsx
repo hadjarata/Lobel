@@ -48,9 +48,18 @@ const ProfileSettingsPanel = () => {
             <h3>Changer le mot de passe</h3>
             <p>Au moins 10 caractères. Les contrôles Django restent définitifs.</p>
             {error && <div className="auth-error">{error}</div>}
-            <input type="password" name="current_password" aria-label="Mot de passe actuel" placeholder="Mot de passe actuel" value={passwords.current_password} onChange={update} disabled={operationPending} />
-            <input type="password" name="password" aria-label="Nouveau mot de passe" placeholder="Nouveau mot de passe" value={passwords.password} onChange={update} disabled={operationPending} />
-            <input type="password" name="confirm_password" aria-label="Confirmer le mot de passe" placeholder="Confirmer le mot de passe" value={passwords.confirm_password} onChange={update} disabled={operationPending} />
+            <label className="profile-field">
+              <span>Mot de passe actuel</span>
+              <input type="password" name="current_password" value={passwords.current_password} onChange={update} disabled={operationPending} />
+            </label>
+            <label className="profile-field">
+              <span>Nouveau mot de passe</span>
+              <input type="password" name="password" value={passwords.password} onChange={update} disabled={operationPending} />
+            </label>
+            <label className="profile-field">
+              <span>Confirmer le mot de passe</span>
+              <input type="password" name="confirm_password" value={passwords.confirm_password} onChange={update} disabled={operationPending} />
+            </label>
             <button type="submit" className="profile-btn profile-btn-outline profile-btn-small" disabled={operationPending}>
               Modifier le mot de passe
             </button>

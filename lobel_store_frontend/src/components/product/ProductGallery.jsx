@@ -10,7 +10,7 @@ import { useMotionTransition } from '../../utils/useMotionTransition';
 import { logger } from '../../utils/logger';
 import './ProductGallery.css';
 
-const ProductGallery = ({ media, productName }) => {
+const ProductGallery = ({ media, productName, controls = null }) => {
   const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const mainMediaRef = useRef(null);
@@ -201,6 +201,8 @@ const ProductGallery = ({ media, productName }) => {
       </div>
 
       {/* Thumbnails - Afficher TOUS les médias sans condition */}
+      {controls}
+
       {validMedia && validMedia.length > 0 && (
         <div className="thumbnails-container">
           <div className="thumbnails">

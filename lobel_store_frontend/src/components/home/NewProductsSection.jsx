@@ -51,6 +51,7 @@ const NewProductsSection = () => {
   return (
     <Section
       className="new-products-section"
+      animateTitle
       id="new-products"
       title="Nouveautés"
       subtitle="Les dernières pièces de notre sélection, pensées pour vous"
