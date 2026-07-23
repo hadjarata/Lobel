@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.checks import Error, register
 from payments.providers.base import mock_provider_is_allowed
 from urllib.parse import urlparse
+import ipaddress
 
 
 SUPPORTED_PROVIDERS = {"mock", "ligdicash"}
@@ -59,4 +60,28 @@ def payment_configuration_check(app_configs, **kwargs):
                 for value in urls
             ):
                 return [Error("LigdiCash production URLs must be public HTTPS.", id="payments.E007")]
+    signature_required = getattr(
+        settings, "PAYMENT_WEBHOOK_SIGNATURE_REQUIRED", False
+    )
+    if signature_required and provider == "ligdicash":
+        from payments.providers.ligdicash import LigdicashProvider
+        if not LigdicashProvider.webhook_signature_supported:
+            return [Error(
+                "LigdiCash webhook signature cannot be required before its "
+                "official verification adapter is implemented.",
+                id="payments.E008",
+            )]
+    try:
+        for value in getattr(settings, "PAYMENT_WEBHOOK_ALLOWED_IPS", []):
+            ipaddress.ip_network(value, strict=False)
+    except ValueError:
+        return [Error(
+            "PAYMENT_WEBHOOK_ALLOWED_IPS contains an invalid IP or CIDR.",
+            id="payments.E009",
+        )]
+    if getattr(settings, "PAYMENT_WEBHOOK_MAX_AGE_SECONDS", 0) <= 0:
+        return [Error(
+            "PAYMENT_WEBHOOK_MAX_AGE_SECONDS must be positive.",
+            id="payments.E010",
+        )]
     return []

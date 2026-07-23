@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 class LigdicashProvider(PaymentProvider):
     provider_name = "ligdicash"
+    webhook_signature_supported = False
 
     CREATE_PATH = "/pay/v01/redirect/checkout-invoice/create"
     CONFIRM_PATH = "/pay/v01/redirect/checkout-invoice/confirm"

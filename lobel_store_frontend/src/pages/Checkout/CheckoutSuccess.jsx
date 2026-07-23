@@ -8,7 +8,9 @@ import { publicConfig } from '../../config/env';
 import { paymentPollDelay } from '../../payments/paymentPolicy';
 import './CheckoutSuccess.css';
 
-const FINAL = new Set(['completed', 'failed', 'cancelled', 'expired']);
+const FINAL = new Set([
+  'completed', 'failed', 'cancelled', 'expired', 'refund_required',
+]);
 const MAX_ATTEMPTS = 8;
 
 const CheckoutSuccess = () => {

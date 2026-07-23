@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from users.models import Customer
 from products.models import Product, ProductVariant
+from store.money import validate_xof_integer
 
 MAX_CART_ITEM_QUANTITY = 99
 
@@ -95,10 +96,22 @@ class Order(models.Model):
     billing_same_as_shipping = models.BooleanField(default=True)
     billing_address = models.TextField(blank=True)
     checkout_version = models.CharField(max_length=64, blank=True)
-    subtotal_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    shipping_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    subtotal_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=[validate_xof_integer],
+    )
+    shipping_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00"),
+        validators=[validate_xof_integer],
+    )
+    discount_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00"),
+        validators=[validate_xof_integer],
+    )
+    total_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=[validate_xof_integer],
+    )
     currency = models.CharField(max_length=3, default="XOF")
     preparation_started_at = models.DateTimeField(null=True, blank=True)
     shipped_at = models.DateTimeField(null=True, blank=True)
@@ -106,6 +119,8 @@ class Order(models.Model):
     cancelled_at = models.DateTimeField(null=True, blank=True)
     refund_requested_at = models.DateTimeField(null=True, blank=True)
     refunded_at = models.DateTimeField(null=True, blank=True)
+    stock_reserved_at = models.DateTimeField(null=True, blank=True)
+    stock_reservation_expires_at = models.DateTimeField(null=True, blank=True)
     stock_consumed_at = models.DateTimeField(null=True, blank=True)
     stock_released_at = models.DateTimeField(null=True, blank=True)
 
@@ -131,6 +146,34 @@ class Order(models.Model):
             models.CheckConstraint(
                 condition=models.Q(total_amount__isnull=True) | models.Q(total_amount__gte=0),
                 name="order_total_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(subtotal_amount__isnull=True)
+                    | models.Q(
+                        subtotal_amount=models.functions.Floor("subtotal_amount")
+                    )
+                ),
+                name="order_subtotal_xof_integer",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    shipping_amount=models.functions.Floor("shipping_amount")
+                ),
+                name="order_shipping_xof_integer",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    discount_amount=models.functions.Floor("discount_amount")
+                ),
+                name="order_discount_xof_integer",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(total_amount__isnull=True)
+                    | models.Q(total_amount=models.functions.Floor("total_amount"))
+                ),
+                name="order_total_xof_integer",
             ),
         ]
 
@@ -335,13 +378,22 @@ class OrderItem(models.Model):
     color_name = models.CharField(max_length=50, blank=True)
     size_name = models.CharField(max_length=20, blank=True)
     sku = models.CharField(max_length=100, blank=True)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    unit_price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[validate_xof_integer],
+    )
     product_reference = models.BigIntegerField(null=True, blank=True)
     variant_reference = models.BigIntegerField(null=True, blank=True)
     variant_name = models.CharField(max_length=150, blank=True)
     currency = models.CharField(max_length=3, null=True, blank=True)
-    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    subtotal = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    discount_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal("0.00"),
+        validators=[validate_xof_integer],
+    )
+    subtotal = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        validators=[validate_xof_integer],
+    )
     date_added = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -366,6 +418,26 @@ class OrderItem(models.Model):
             models.CheckConstraint(
                 condition=models.Q(subtotal__isnull=True) | models.Q(subtotal__gte=0),
                 name="order_item_subtotal_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(unit_price__isnull=True)
+                    | models.Q(unit_price=models.functions.Floor("unit_price"))
+                ),
+                name="order_item_price_xof_integer",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    discount_amount=models.functions.Floor("discount_amount")
+                ),
+                name="order_item_discount_xof_integer",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(subtotal__isnull=True)
+                    | models.Q(subtotal=models.functions.Floor("subtotal"))
+                ),
+                name="order_item_subtotal_xof_integer",
             ),
         ]
 

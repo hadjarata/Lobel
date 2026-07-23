@@ -24,8 +24,8 @@ class Command(BaseCommand):
             status__in=[
                 "initializing", "pending", "redirect_required", "processing", "unknown",
             ],
-            date_paid__lte=timezone.now() - timedelta(minutes=options["age_minutes"]),
-        ).order_by("date_paid", "id")
+            created_at__lte=timezone.now() - timedelta(minutes=options["age_minutes"]),
+        ).order_by("created_at", "id")
         if options["payment_id"]:
             query = query.filter(id=options["payment_id"])
         payments = list(query[:options["limit"]])

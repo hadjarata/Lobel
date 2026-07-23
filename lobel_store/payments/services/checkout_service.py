@@ -1,5 +1,5 @@
 import logging
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from orders.models import Order
 from orders.models import MAX_CART_ITEM_QUANTITY
@@ -17,6 +17,7 @@ from users.models import Customer
 from django.db import transaction
 from django.utils import timezone
 from products.models import ProductVariant
+from store.money import xof_integer
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +206,7 @@ class CheckoutService:
         )
 
     def _format_amount(self, amount: Decimal) -> int:
-        return int(Decimal(amount).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        return int(xof_integer(amount))
 
     def _build_order_reference(self, order: Order) -> str:
         return f"LOBEL-ORDER-{order.id}"

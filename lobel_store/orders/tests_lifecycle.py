@@ -95,8 +95,10 @@ class OrderLifecycleTests(LifecycleFixtureMixin, TestCase):
         self.assertEqual(self.variant.stock, 10)
         self.assertFalse(OrderStatusHistory.objects.exists())
 
-    def test_cancel_before_payment_does_not_release_stock(self):
+    def test_cancel_before_payment_releases_reserved_stock(self):
         self.pending()
+        self.variant.refresh_from_db()
+        self.assertEqual(self.variant.stock, 8)
         self.service.transition_order(
             order=self.order, target_status=Order.STATUS_CANCELLED,
             actor=self.owner, reason_code="customer_request",
@@ -105,7 +107,7 @@ class OrderLifecycleTests(LifecycleFixtureMixin, TestCase):
         self.order.refresh_from_db()
         self.variant.refresh_from_db()
         self.assertIsNone(self.order.stock_consumed_at)
-        self.assertIsNone(self.order.stock_released_at)
+        self.assertIsNotNone(self.order.stock_released_at)
         self.assertEqual(self.variant.stock, 10)
         history = self.order.status_history.last()
         self.assertEqual(history.reason_code, "customer_request")

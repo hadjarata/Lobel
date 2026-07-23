@@ -5,6 +5,7 @@ from pathlib import Path
 import uuid
 
 from .media_validation import validate_image_upload, validate_video_upload
+from store.money import validate_xof_integer
 
 
 def product_media_upload_to(instance, filename):
@@ -43,7 +44,9 @@ class Product(models.Model):
         related_name='products'
     )
     description = models.TextField(blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(
+        max_digits=10, decimal_places=2, validators=[validate_xof_integer]
+    )
     
     date_created = models.DateTimeField(auto_now_add=True)
 
@@ -58,6 +61,12 @@ class Product(models.Model):
 
     class Meta:
         ordering = ['-date_created']
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(price=models.functions.Floor("price")),
+                name="product_price_xof_integer",
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -141,14 +150,14 @@ class ProductVariant(models.Model):
 
     color = models.ForeignKey(
         Color,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True
     )
 
     size = models.ForeignKey(
         Size,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         null=True,
         blank=True
     )
@@ -156,7 +165,10 @@ class ProductVariant(models.Model):
     stock = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     sku = models.CharField(max_length=100, blank=True)
-    price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        validators=[validate_xof_integer],
+    )
 
     class Meta:
         constraints = [
@@ -168,6 +180,13 @@ class ProductVariant(models.Model):
             models.CheckConstraint(
                 condition=models.Q(stock__gte=0),
                 name="variant_stock_non_negative",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(price__isnull=True)
+                    | models.Q(price=models.functions.Floor("price"))
+                ),
+                name="variant_price_xof_integer",
             ),
         ]
 

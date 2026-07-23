@@ -107,7 +107,7 @@ class CheckoutApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data["code"], "invalid_idempotency_key")
 
-    def test_create_freezes_order_without_creating_payment_or_consuming_stock(self):
+    def test_create_freezes_order_and_reserves_stock_without_creating_payment(self):
         preview = self.preview().data
         response = self.create({**self.payload, "checkout_version": preview["checkout_version"]})
         self.assertEqual(response.status_code, 201)
@@ -117,7 +117,10 @@ class CheckoutApiTests(TestCase):
         self.assertEqual(self.cart.total_amount, 19500)
         self.assertEqual(self.cart.delivery_city, "Bamako")
         self.assertIsNotNone(self.cart.snapshot_at)
-        self.assertEqual(self.variant.stock, 5)
+        self.assertEqual(self.variant.stock, 3)
+        self.assertIsNotNone(self.cart.stock_reserved_at)
+        self.assertIsNotNone(self.cart.stock_reservation_expires_at)
+        self.assertIsNone(self.cart.stock_consumed_at)
         self.assertEqual(self.cart.payments.count(), 0)
 
     def test_same_key_replays_same_order(self):

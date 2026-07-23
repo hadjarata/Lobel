@@ -10,6 +10,7 @@ from .base import (
     CheckoutSessionResult,
     PaymentProvider,
     PaymentVerificationResult,
+    RefundResult,
     WebhookParseError,
 )
 
@@ -61,6 +62,11 @@ class MockProvider(PaymentProvider):
             verification_implemented=payment is not None,
         )
 
+    def find_payment_by_reference(
+        self, merchant_reference: str, *, payment=None
+    ) -> PaymentVerificationResult:
+        return self.verify_payment("", payment=payment)
+
     def parse_webhook(self, raw_body: bytes, content_type: str | None) -> dict:
         if not raw_body:
             raise WebhookParseError("Empty mock webhook body.")
@@ -90,3 +96,22 @@ class MockProvider(PaymentProvider):
         if payment_id is not None:
             return f"mock:payment:{payment_id}"
         return f"mock:hash:{payload_hash}"
+
+    def create_refund(self, refund) -> RefundResult:
+        return RefundResult(
+            status="completed",
+            response_code="00",
+            provider_reference=f"MOCK-REFUND-{refund.uuid.hex.upper()}",
+            refunded_amount=Decimal(refund.amount),
+            currency=refund.currency,
+        )
+
+    def verify_refund(self, refund) -> RefundResult:
+        return RefundResult(
+            status="completed",
+            response_code="00",
+            provider_reference=refund.provider_reference
+            or f"MOCK-REFUND-{refund.uuid.hex.upper()}",
+            refunded_amount=Decimal(refund.amount),
+            currency=refund.currency,
+        )

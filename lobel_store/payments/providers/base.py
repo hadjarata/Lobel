@@ -75,6 +75,25 @@ class PaymentVerificationResult:
 
 
 @dataclass(frozen=True)
+class WebhookAuthenticityResult:
+    verified: bool = False
+    verification_implemented: bool = False
+    method: str = ""
+    event_id: str | None = None
+    occurred_at: datetime | None = None
+
+
+@dataclass(frozen=True)
+class RefundResult:
+    status: str
+    response_code: str = ""
+    provider_reference: str | None = None
+    refunded_amount: Decimal | None = None
+    currency: str | None = None
+    raw: dict | None = None
+
+
+@dataclass(frozen=True)
 class WebhookResult:
     processed: bool
     message: str
@@ -96,6 +115,14 @@ class PaymentProvider(ABC):
     ) -> PaymentVerificationResult:
         raise NotImplementedError
 
+    def find_payment_by_reference(
+        self, merchant_reference: str, *, payment: Payment | None = None
+    ) -> PaymentVerificationResult:
+        """Recover an ambiguous initialization without creating a new checkout."""
+        raise PaymentConfigurationError(
+            f"Lookup by merchant reference is not configured for {self.provider_name}."
+        )
+
     @abstractmethod
     def parse_webhook(self, raw_body: bytes, content_type: str | None) -> dict:
         raise NotImplementedError
@@ -108,11 +135,26 @@ class PaymentProvider(ABC):
     def build_deduplication_key(self, payload: dict, payload_hash: str) -> str:
         raise NotImplementedError
 
+    def verify_webhook_authenticity(
+        self, raw_body: bytes, headers: dict, payload: dict
+    ) -> WebhookAuthenticityResult:
+        return WebhookAuthenticityResult()
+
+    def create_refund(self, refund) -> RefundResult:
+        raise PaymentConfigurationError(
+            f"Refund creation is not configured for provider {self.provider_name}."
+        )
+
+    def verify_refund(self, refund) -> RefundResult:
+        raise PaymentConfigurationError(
+            f"Refund verification is not configured for provider {self.provider_name}."
+        )
+
     @staticmethod
     def format_amount(amount: Decimal) -> int:
-        from decimal import ROUND_HALF_UP
+        from store.money import xof_integer
 
-        return int(Decimal(amount).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        return int(xof_integer(amount))
 
 
 def validate_provider_confirmation(

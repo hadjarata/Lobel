@@ -31,13 +31,13 @@ class ImmutableOrderSnapshotTests(TestCase):
         )
         category = Category.objects.create(name="Mode")
         self.product = Product.objects.create(
-            name="Robe historique", category=category, price=Decimal("1250.25")
+            name="Robe historique", category=category, price=Decimal("1250.00")
         )
         self.color = Color.objects.create(name="Noir")
         self.size = Size.objects.create(name="M")
         self.variant = ProductVariant.objects.create(
             product=self.product, color=self.color, size=self.size,
-            stock=10, sku="ROB-N-M", price=Decimal("1200.10"),
+            stock=10, sku="ROB-N-M", price=Decimal("1200.00"),
         )
         self.item, _ = CartService().add_variant(
             customer=self.customer, variant=self.variant, quantity=2
@@ -53,15 +53,15 @@ class ImmutableOrderSnapshotTests(TestCase):
         self.assertEqual(self.item.product_reference, self.product.id)
         self.assertEqual(self.item.variant_reference, self.variant.id)
         self.assertEqual(self.item.variant_name, "Noir / M")
-        self.assertEqual(self.item.unit_price, Decimal("1200.10"))
+        self.assertEqual(self.item.unit_price, Decimal("1200.00"))
         self.assertEqual(self.item.discount_amount, Decimal("0.00"))
-        self.assertEqual(self.item.subtotal, Decimal("2400.20"))
+        self.assertEqual(self.item.subtotal, Decimal("2400.00"))
         self.assertEqual(self.item.currency, "XOF")
         self.assertEqual(self.order.customer_name, "Awa Diallo")
         self.assertEqual(self.order.delivery_phone, "+22370000000")
         self.assertEqual(self.order.delivery_address, "Hamdallaye ACI 2000")
-        self.assertEqual(self.order.subtotal_amount, Decimal("2400.20"))
-        self.assertEqual(self.order.total_amount, Decimal("2400.20"))
+        self.assertEqual(self.order.subtotal_amount, Decimal("2400.00"))
+        self.assertEqual(self.order.total_amount, Decimal("2400.00"))
         self.assertEqual(self.payment.amount, self.order.total_amount)
         self.assertEqual(self.payment.currency, self.order.currency)
 
@@ -124,22 +124,34 @@ class ImmutableOrderSnapshotTests(TestCase):
 
 
 class FinancialSnapshotFormulaTests(TestCase):
-    def test_decimal_line_and_order_formulas(self):
+    def test_integer_xof_line_and_order_formulas(self):
         line = FinancialSnapshotService.line_subtotal(
-            unit_price=Decimal("10.15"), quantity=3,
-            discount_amount=Decimal("0.10"),
-        )
-        self.assertIsInstance(line, Decimal)
-        self.assertEqual(line, Decimal("30.35"))
-        total = FinancialSnapshotService.order_total(
-            subtotal=line, shipping_amount=Decimal("2.50"),
+            unit_price=Decimal("10.00"), quantity=3,
             discount_amount=Decimal("1.00"),
         )
-        self.assertEqual(total, Decimal("31.85"))
+        self.assertIsInstance(line, Decimal)
+        self.assertEqual(line, Decimal("29.00"))
+        total = FinancialSnapshotService.order_total(
+            subtotal=line, shipping_amount=Decimal("3.00"),
+            discount_amount=Decimal("1.00"),
+        )
+        self.assertEqual(total, Decimal("31.00"))
+
+    def test_fractional_xof_amounts_are_rejected_without_rounding(self):
+        with self.assertRaises(ValidationError):
+            FinancialSnapshotService.line_subtotal(
+                unit_price=Decimal("10.50"), quantity=1
+            )
+        with self.assertRaises(ValidationError):
+            FinancialSnapshotService.order_total(
+                subtotal=Decimal("10.00"),
+                shipping_amount=Decimal("0.50"),
+                discount_amount=Decimal("0.00"),
+            )
 
     def test_discount_cannot_exceed_gross_amount(self):
         with self.assertRaises(ValidationError):
             FinancialSnapshotService.line_subtotal(
                 unit_price=Decimal("10.00"), quantity=1,
-                discount_amount=Decimal("10.01"),
+                discount_amount=Decimal("11.00"),
             )

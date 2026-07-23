@@ -46,6 +46,7 @@ export const ORDER_STATUS_LABELS = {
 
 export const PAYMENT_STATUS_LABELS = {
   pending: 'En attente',
+  refund_required: 'Remboursement requis',
   completed: 'Confirmé',
   failed: 'Échoué',
 };

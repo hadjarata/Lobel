@@ -1,3 +1,6 @@
+from datetime import timedelta
+
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -23,13 +26,16 @@ ALLOWED_ORDER_TRANSITIONS = {
     Order.STATUS_PENDING_PAYMENT: {
         Order.STATUS_PAYMENT_PROCESSING, Order.STATUS_PAID,
         Order.STATUS_PAYMENT_FAILED, Order.STATUS_CANCELLED, Order.STATUS_EXPIRED,
+        Order.STATUS_REFUND_REQUIRED,
     },
     Order.STATUS_PAYMENT_PROCESSING: {
         Order.STATUS_PAID, Order.STATUS_PAYMENT_FAILED,
         Order.STATUS_CANCELLED, Order.STATUS_EXPIRED,
+        Order.STATUS_REFUND_REQUIRED,
     },
     Order.STATUS_PAYMENT_FAILED: {
-        Order.STATUS_PAYMENT_PROCESSING, Order.STATUS_CANCELLED, Order.STATUS_EXPIRED,
+        Order.STATUS_PAYMENT_PROCESSING, Order.STATUS_CANCELLED,
+        Order.STATUS_EXPIRED, Order.STATUS_REFUND_REQUIRED,
     },
     Order.STATUS_PAID: {Order.STATUS_PREPARING, Order.STATUS_REFUND_PENDING},
     Order.STATUS_PREPARING: {
@@ -73,14 +79,25 @@ class OrderLifecycleService:
         now = timezone.now()
         update_fields = ["status"]
 
-        if target_status == Order.STATUS_PAYMENT_PROCESSING:
+        if target_status == Order.STATUS_PENDING_PAYMENT:
+            self._reserve_stock(order)
+            order.stock_reserved_at = now
+            order.stock_reservation_expires_at = now + timedelta(
+                minutes=settings.ORDER_PENDING_PAYMENT_TTL_MINUTES
+            )
+            order.stock_released_at = None
+            update_fields += [
+                "stock_reserved_at", "stock_reservation_expires_at",
+                "stock_released_at",
+            ]
+        elif target_status == Order.STATUS_PAYMENT_PROCESSING:
             order.payment_processing_at = order.payment_processing_at or now
             update_fields.append("payment_processing_at")
         elif target_status == Order.STATUS_PAYMENT_FAILED:
             order.payment_failed_at = order.payment_failed_at or now
             update_fields.append("payment_failed_at")
         elif target_status == Order.STATUS_PAID:
-            self._consume_stock(order)
+            self._commit_or_consume_stock(order)
             order.stock_consumed_at = now
             order.paid_at = order.paid_at or now
             order.complete = True
@@ -98,10 +115,16 @@ class OrderLifecycleService:
             order.delivered_at = order.delivered_at or now
             update_fields.append("delivered_at")
         elif target_status == Order.STATUS_CANCELLED:
+            if self._release_reserved_stock(order):
+                order.stock_released_at = now
+                update_fields.append("stock_released_at")
             order.cancelled_at = order.cancelled_at or now
             order.complete = True
             update_fields += ["cancelled_at", "complete"]
         elif target_status == Order.STATUS_EXPIRED:
+            if self._release_reserved_stock(order):
+                order.stock_released_at = now
+                update_fields.append("stock_released_at")
             order.expired_at = order.expired_at or now
             order.complete = True
             update_fields += ["expired_at", "complete"]
@@ -212,8 +235,14 @@ class OrderLifecycleService:
             ):
                 raise OrderTransitionError("Une commande payée ne peut pas expirer.")
         elif target == Order.STATUS_REFUND_PENDING:
-            if not order.stock_consumed_at:
-                raise OrderTransitionError("Commande non payée.", "order_not_paid")
+            if not order.stock_consumed_at and (
+                payment is None
+                or payment.order_id != order.id
+                or payment.status not in {"completed", "refund_required"}
+            ):
+                raise OrderTransitionError(
+                    "Paiement remboursable introuvable.", "order_not_paid"
+                )
         elif target == Order.STATUS_REFUNDED and not refund_confirmed:
             raise OrderTransitionError(
                 "Une confirmation technique est obligatoire.", "refund_not_allowed"
@@ -238,6 +267,54 @@ class OrderLifecycleService:
             Product.objects.filter(pk=variant.product_id).update(
                 sales_count=F("sales_count") + item.quantity
             )
+
+    def _reserve_stock(self, order):
+        items, variants = self._locked_items_and_variants(order)
+        for item in items:
+            variant = variants[item.variant_id]
+            if variant.product_id != item.product_id:
+                raise OrderTransitionError("Variante incohérente.")
+            if not variant.product.is_active or not variant.is_active:
+                raise OrderTransitionError("Produit ou variante inactif.")
+            if variant.stock < item.quantity:
+                raise OrderTransitionError(
+                    f"Stock insuffisant pour la variante {variant.id}.",
+                    "insufficient_stock",
+                )
+            ProductVariant.objects.filter(pk=variant.pk).update(
+                stock=F("stock") - item.quantity
+            )
+
+    def _commit_or_consume_stock(self, order):
+        reservation_active = bool(
+            order.stock_reserved_at and not order.stock_released_at
+        )
+        if not reservation_active:
+            self._consume_stock(order)
+            return
+
+        items, variants = self._locked_items_and_variants(order)
+        for item in items:
+            variant = variants[item.variant_id]
+            if variant.product_id != item.product_id:
+                raise OrderTransitionError("Variante incohérente.")
+            Product.objects.filter(pk=variant.product_id).update(
+                sales_count=F("sales_count") + item.quantity
+            )
+
+    def _release_reserved_stock(self, order):
+        if (
+            not order.stock_reserved_at
+            or order.stock_released_at
+            or order.stock_consumed_at
+        ):
+            return False
+        items, variants = self._locked_items_and_variants(order)
+        for item in items:
+            ProductVariant.objects.filter(pk=variants[item.variant_id].pk).update(
+                stock=F("stock") + item.quantity
+            )
+        return True
 
     def _locked_items_and_variants(self, order):
         items = list(order.items.select_for_update().order_by("variant_id", "id"))

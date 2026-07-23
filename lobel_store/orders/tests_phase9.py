@@ -160,7 +160,7 @@ class Phase9OrderLifecycleTests(TestCase):
 
     def test_expiration_dry_run_does_not_mutate(self):
         Order.objects.filter(pk=self.order.pk).update(
-            date_ordered=timezone.now() - timedelta(hours=2)
+            stock_reservation_expires_at=timezone.now() - timedelta(minutes=1)
         )
         output = StringIO()
         call_command(

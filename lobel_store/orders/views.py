@@ -22,6 +22,7 @@ from .services.order_checkout_service import OrderCheckoutError, OrderCheckoutSe
 from .services.receipt_pdf import render_order_receipt_pdf
 from .services.receipt_service import ELIGIBLE_RECEIPT_STATUSES, OrderReceiptService
 from .permissions import IsOrderOwner
+from payments.services.refund_service import RefundError, RefundService
 
 cart_service = CartService()
 lifecycle_service = OrderLifecycleService()
@@ -317,8 +318,66 @@ class OrderViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="request-refund")
     def request_refund(self, request, pk=None):
-        return self._transition(
-            request, Order.STATUS_REFUND_PENDING, require_reason=True
+        order = self.get_object()
+        reason = str(request.data.get("reason", "")).strip()
+        idempotency_key = request.headers.get("Idempotency-Key", "").strip()
+        if not reason:
+            return Response(
+                {"code": "reason_required", "detail": "Motif requis."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not idempotency_key or len(idempotency_key) > 64:
+            return Response(
+                {
+                    "code": "invalid_idempotency_key",
+                    "detail": "Idempotency-Key requis.",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        payment = (
+            order.payments.filter(status__in=["completed", "refund_required"])
+            .exclude(failure_code="duplicate_payment")
+            .order_by("processed_at", "id")
+            .first()
+        )
+        if payment is None:
+            return Response(
+                {
+                    "code": "payment_not_refundable",
+                    "detail": "Aucun paiement remboursable.",
+                },
+                status=status.HTTP_409_CONFLICT,
+            )
+        existing = payment.refunds.filter(
+            idempotency_key=idempotency_key
+        ).first()
+        amount = (
+            existing.amount
+            if existing is not None
+            else RefundService.refundable_balance(payment)
+        )
+        try:
+            refund, replayed = RefundService().request(
+                payment=payment,
+                amount=amount,
+                reason=reason,
+                actor=request.user,
+                idempotency_key=idempotency_key,
+            )
+        except RefundError as exc:
+            return Response(
+                {"code": exc.code, "detail": str(exc)},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return Response(
+            {
+                "refund_id": refund.id,
+                "status": refund.status,
+                "amount": refund.amount,
+                "currency": refund.currency,
+                "replayed": replayed,
+            },
+            status=status.HTTP_200_OK if replayed else status.HTTP_201_CREATED,
         )
 
 

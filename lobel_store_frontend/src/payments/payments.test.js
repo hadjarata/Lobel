@@ -32,6 +32,7 @@ describe('sécurité des URLs de paiement', () => {
 describe('statuts de paiement', () => {
   it.each([
     ['completed', true], ['failed', true], ['cancelled', true], ['expired', true],
+    ['refund_required', true],
     ['pending', false], ['processing', false], ['redirect_required', false],
     ['initializing', false], ['unknown', false], ['created', false],
   ])('%s final=%s', (status, expected) => {

@@ -1,8 +1,8 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from store.money import xof_integer
 
-MONEY_QUANTUM = Decimal("0.01")
 ORDER_CURRENCY = "XOF"
 
 
@@ -11,7 +11,7 @@ class FinancialSnapshotService:
 
     @staticmethod
     def money(value) -> Decimal:
-        return Decimal(value).quantize(MONEY_QUANTUM, rounding=ROUND_HALF_UP)
+        return xof_integer(value)
 
     @classmethod
     def line_subtotal(cls, *, unit_price, quantity, discount_amount=Decimal("0.00")):

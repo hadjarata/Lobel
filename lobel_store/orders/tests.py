@@ -24,7 +24,7 @@ class OrderItemViewSetTests(APITestCase):
         self.product = Product.objects.create(
             name="Runner",
             category=self.category,
-            price="49.99",
+            price="50.00",
         )
         self.variant = ProductVariant.objects.create(product=self.product, stock=20)
         self.url = reverse("orderitem-list")

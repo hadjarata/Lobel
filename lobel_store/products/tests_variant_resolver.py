@@ -7,7 +7,7 @@ from .models import Category, Product, ProductVariant
 class VariantResolverTests(TestCase):
     def setUp(self):
         category = Category.objects.create(name="Resolver")
-        self.product = Product.objects.create(name="Produit", category=category, price="25.50")
+        self.product = Product.objects.create(name="Produit", category=category, price="25.00")
         self.variant = ProductVariant.objects.create(
             product=self.product, sku="SKU-1", stock=3, is_active=True
         )
@@ -18,7 +18,7 @@ class VariantResolverTests(TestCase):
         response = self.client.post(self.url, {"variant_ids": [self.variant.id]}, format="json")
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data["results"][0]["sku"], "SKU-1")
-        self.assertEqual(response.data["results"][0]["price"], "25.50")
+        self.assertEqual(response.data["results"][0]["price"], "25.00")
         self.assertTrue(response.data["results"][0]["is_available"])
 
     def test_reports_missing_ids(self):

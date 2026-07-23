@@ -10,16 +10,18 @@ from django.utils import timezone
 
 from orders.models import Order
 from orders.services.lifecycle_service import OrderLifecycleService, OrderTransitionError
-from payments.models import Payment, PaymentAuditEvent
+from payments.models import Payment
 from payments.providers import get_payment_provider
 from payments.providers.base import (
     CheckoutContext,
     PaymentAPIError,
     PaymentCommunicationError,
+    PaymentConfigurationError,
     PaymentInvalidResponseError,
     validate_provider_confirmation,
 )
 from payments.services.payment_service import PaymentService
+from payments.services.audit_service import PaymentAuditService
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ class PaymentLifecycleError(Exception):
 
 class PaymentLifecycleService:
     ACTIVE = {"created", "initializing", "pending", "redirect_required", "processing", "unknown"}
-    TERMINAL = {"completed", "failed", "cancelled", "expired"}
+    TERMINAL = {"completed", "failed", "cancelled", "expired", "refund_required"}
 
     def __init__(self, provider=None):
         self.provider = provider or get_payment_provider()
@@ -134,15 +136,29 @@ class PaymentLifecycleService:
         payment = query.filter(id=payment_id).first()
         if payment is None:
             raise PaymentLifecycleError("Paiement introuvable.", "payment_not_found")
-        if payment.status == "completed":
+        if payment.status in {"completed", "refund_required"}:
             return payment
-        if not payment.session_token:
-            raise PaymentLifecycleError(
-                "Initialisation encore indéterminée.", "initialization_ambiguous"
+        if payment.session_token:
+            result = self.provider.verify_payment(
+                payment.session_token, payment=payment
             )
-        result = self.provider.verify_payment(payment.session_token, payment=payment)
+        else:
+            try:
+                result = self.provider.find_payment_by_reference(
+                    payment.merchant_reference, payment=payment
+                )
+            except PaymentConfigurationError as exc:
+                self._audit(
+                    payment, "reference_lookup_unavailable",
+                    payment.status, payment.status,
+                )
+                raise PaymentLifecycleError(
+                    "Recherche fournisseur par référence indisponible.",
+                    "reference_lookup_unavailable",
+                ) from exc
         payment.last_checked_at = timezone.now()
         payment.provider_status = (result.status or "unknown").lower()
+        payment.provider_payload = PaymentAuditService.provider_evidence(result.raw)
         if payment.provider_status == "completed":
             validate_provider_confirmation(
                 payment=payment, result=result, require_signature=False
@@ -153,10 +169,12 @@ class PaymentLifecycleService:
             payment.external_transaction_id = result.external_transaction_id
             payment.save(update_fields=[
                 "status", "provider_status", "confirmed_at",
-                "external_transaction_id", "last_checked_at", "updated_at",
+                "external_transaction_id", "last_checked_at",
+                "provider_payload", "updated_at",
             ])
-            PaymentService().handle_payment_completed(payment)
-            self._audit(payment, "payment_confirmed", before, "completed")
+            outcome = PaymentService().handle_payment_completed(payment)
+            if outcome == "completed":
+                self._audit(payment, "payment_confirmed", before, "completed")
             payment.refresh_from_db()
             payment.order.refresh_from_db()
         elif payment.provider_status == "notcompleted":
@@ -164,7 +182,8 @@ class PaymentLifecycleService:
             payment.status = "failed"
             payment.failed_at = timezone.now()
             payment.save(update_fields=[
-                "status", "provider_status", "failed_at", "last_checked_at", "updated_at",
+                "status", "provider_status", "failed_at", "last_checked_at",
+                "provider_payload", "updated_at",
             ])
             self._audit(payment, "payment_failed", before, "failed")
             self._transition_order_payment_state(
@@ -174,7 +193,8 @@ class PaymentLifecycleService:
             before = payment.status
             payment.status = "processing"
             payment.save(update_fields=[
-                "status", "provider_status", "last_checked_at", "updated_at",
+                "status", "provider_status", "last_checked_at",
+                "provider_payload", "updated_at",
             ])
             self._audit(payment, "status_checked", before, "processing")
             self._transition_order_payment_state(
@@ -252,8 +272,9 @@ class PaymentLifecycleService:
 
     @staticmethod
     def _audit(payment, event, before, after):
-        PaymentAuditEvent.objects.create(
-            payment=payment, event_type=event, from_status=before, to_status=after
+        PaymentAuditService.record(
+            payment=payment, event_type=event,
+            from_status=before, to_status=after,
         )
         logger.info(
             "[Payment] event=%s payment_id=%s order_id=%s from=%s to=%s",

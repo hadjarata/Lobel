@@ -4,6 +4,7 @@ import { adaptOrderDetail } from './orders';
 const PAYMENT_STATUSES = new Set([
   'created', 'initializing', 'pending', 'redirect_required', 'processing',
   'completed', 'failed', 'cancelled', 'expired', 'unknown',
+  'refund_required',
 ]);
 const base = (raw, adapter) => {
   const data = requireObject(raw, adapter);

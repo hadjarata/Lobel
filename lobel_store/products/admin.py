@@ -45,7 +45,7 @@ class ProductMediaInline(admin.TabularInline):
     fields = ('media_type', 'file', 'order')
     ordering = ('order',)
     readonly_fields = ('format', 'mime_type', 'size_bytes', 'width', 'height', 'duration_seconds', 'checksum')
-    can_delete = False
+    can_delete = True
 
 
 class ProductMediaAdminForm(forms.ModelForm):
@@ -71,10 +71,6 @@ class ProductMediaAdmin(admin.ModelAdmin):
     list_filter = ("media_type", "format", "is_active")
     list_select_related = ("product",)
 
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-
 # =========================
 # VARIANT INLINE (COULEUR + TAILLE)
 # =========================
@@ -82,7 +78,7 @@ class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
     extra = 1
     fields = ('color', 'size', 'stock', 'is_active')
-    can_delete = False
+    can_delete = True
 
 
 # =========================
@@ -95,10 +91,6 @@ class CategoryAdmin(admin.ModelAdmin):
     actions = [archive_selected_categories, reactivate_selected_categories]
     search_fields = ('name',)
     ordering = ('-date_created',)
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
 
 # =========================
 # COLOR ADMIN (1 clic)
@@ -240,9 +232,6 @@ class ProductAdmin(admin.ModelAdmin):
             except (ValueError, TypeError):
                 pass
         return initial
-
-    def has_delete_permission(self, request, obj=None):
-        return False
 
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)

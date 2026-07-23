@@ -32,6 +32,7 @@ from payments.services.webhook_service import PaymentWebhookService
 from payments.services.payment_lifecycle_service import (
     PaymentLifecycleError, PaymentLifecycleService,
 )
+from payments.services.webhook_security import WebhookAuthenticationError
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,7 @@ class PaymentViewSet(viewsets.ReadOnlyModelViewSet):
                 "order__items__product", "order__items__variant__product",
                 "order__items__variant__color", "order__items__variant__size",
                 "order__status_history",
+                "refunds",
             )
         return queryset
 
@@ -156,7 +158,18 @@ class PaymentWebhookView(APIView):
 
         try:
             service = PaymentWebhookService()
-            result = service.process(request._request.body, content_type)
+            result = service.process(
+                request._request.body,
+                content_type,
+                headers=dict(request.headers),
+                source_ip=request.META.get("REMOTE_ADDR", ""),
+            )
+        except WebhookAuthenticationError:
+            logger.warning("[Payment] webhook authentication rejected.")
+            return Response(
+                {"received": False, "processed": False},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
         except PaymentConfigurationError as exc:
             return Response(
                 {"detail": str(exc)},

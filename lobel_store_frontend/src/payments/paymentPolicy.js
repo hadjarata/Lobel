@@ -1,5 +1,5 @@
 export const PAYMENT_FINAL_STATUSES = new Set([
-  'completed', 'failed', 'cancelled', 'expired',
+  'completed', 'failed', 'cancelled', 'expired', 'refund_required',
 ]);
 
 export const isPaymentFinal = (status) => PAYMENT_FINAL_STATUSES.has(status);

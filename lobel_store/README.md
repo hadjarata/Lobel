@@ -34,5 +34,11 @@ python manage.py expire_pending_orders --dry-run
 python manage.py retry_order_notifications --dry-run --failed-only
 ```
 
+## Exploitation et supervision
+
+Les tâches de paiement doivent être branchées sur un cron, Celery Beat ou le
+scheduler de la plateforme. Le planning recommandé et les métriques d'alerte
+sont décrits dans `docs/payment-operations.md`.
+
 Les reçus HTML sont construits depuis les snapshots via un endpoint authentifié.
 Voir `../lobel_store_frontend/docs/phase9-order-lifecycle.md`.

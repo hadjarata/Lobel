@@ -176,4 +176,4 @@ class LifecycleConcurrencyTests(TransactionTestCase):
             self.assertIn("cancelled", outcomes)
             self.assertEqual(self.variant.stock, 8)
             self.assertIsNone(order.stock_consumed_at)
-            self.assertIsNone(order.stock_released_at)
+            self.assertIsNotNone(order.stock_released_at)
